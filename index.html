@@ -1,0 +1,1242 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Simulador de espumas PR-3 Prof. Kerly Palacios UBU</title>
+<meta name="Kerly:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+<style>
+/* Layout: banco de laboratorio. Cabecera breve, barra de control, cuatro puestos en paralelo,
+   lectura de la fase con su gráfica, resultados, lo esperado por caso y contraste con los datos medidos. */
+:root{
+  --paper:#FAF8F5; --panel:#FFFFFF; --tint:#F4EEE8; --line:#E4DAD1;
+  --ink:#1E1718; --body:#3B3234; --muted:#776C69;
+  --accent:#C00000; --accent-tint:#FBEDEC; --gold:#B9862C; --ok:#2F7A4B; --ok-tint:#E6F2EA;
+  --c-af:#C00000; --c-sep:#C08A22; --c-gen:#7D706C; --c-mant:#1E1718;
+  --serif:"Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif;
+  --sans:"IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#161112; --panel:#201819; --tint:#2A2122; --line:#3B2F31;
+    --ink:#F4EEE8; --body:#DDD3CA; --muted:#A99C97;
+    --accent:#EC5A50; --accent-tint:#3A1D1E; --gold:#E2B35A; --ok:#6CC08D; --ok-tint:#1D3326;
+    --c-af:#EC5A50; --c-sep:#E2B35A; --c-gen:#B9ACA7; --c-mant:#F4EEE8;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161112; --panel:#201819; --tint:#2A2122; --line:#3B2F31;
+  --ink:#F4EEE8; --body:#DDD3CA; --muted:#A99C97;
+  --accent:#EC5A50; --accent-tint:#3A1D1E; --gold:#E2B35A; --ok:#6CC08D; --ok-tint:#1D3326;
+  --c-af:#EC5A50; --c-sep:#E2B35A; --c-gen:#B9ACA7; --c-mant:#F4EEE8;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--body);font-family:var(--sans);font-size:15px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px}
+.wrap{max-width:1220px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--serif);color:var(--ink);font-weight:600;margin:0;text-wrap:balance}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.mono{font-family:var(--mono)}
+button,input{font:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sub{font-size:13.5px;color:var(--muted);margin-top:4px;max-width:82ch}
+.sec-h{display:flex;flex-direction:column;gap:2px}
+.sec-h h2{font-size:22px}
+
+/* Cabecera */
+.top{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:28px;align-items:end}
+.top h1{font-size:clamp(28px,4vw,42px);line-height:1.08;margin-top:8px}
+.top .lead{margin-top:12px;max-width:62ch;color:var(--body);font-size:16px}
+.fixed{display:flex;flex-direction:column;gap:10px}
+.fixed .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--tint);color:var(--ink);font-size:13px}
+.warn{font-size:13px;color:var(--body);border-left:2px solid var(--accent);padding:2px 0 2px 10px}
+.theme{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:4px}
+@media (max-width: 980px){.theme{justify-content:flex-start}}
+
+/* Barra de control */
+.controls{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;font-size:14px;font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.small{padding:5px 12px;font-size:13px}
+.btn svg{width:14px;height:14px;fill:currentColor}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--tint)}
+.seg button{border:0;background:transparent;color:var(--muted);padding:5px 11px;border-radius:999px;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.ctl-lbl{font-size:12px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.grp{display:inline-flex;align-items:center;gap:8px}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);cursor:pointer}
+.chk input{accent-color:var(--accent);width:15px;height:15px}
+.butter{display:inline-flex;align-items:center;gap:10px;margin-left:auto}
+.butter input{width:150px;accent-color:var(--gold)}
+.butter output{font-family:var(--mono);font-size:13px;color:var(--ink);min-width:44px}
+.timeline{position:relative;user-select:none;touch-action:none;cursor:pointer;padding-top:2px}
+.segs{display:flex;gap:3px}
+.segs .sg{flex-grow:var(--d);flex-basis:0;min-width:0;display:flex;flex-direction:column;gap:6px}
+.segs .bar{height:8px;border-radius:4px;background:var(--tint);position:relative;overflow:hidden}
+.segs .bar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--accent);border-radius:4px}
+.segs .nm{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.segs .sg.on .nm{color:var(--ink);font-weight:600}
+.segs .nm .sh{display:none}
+.segs .sg .num{font-family:var(--mono);font-size:10.5px;margin-right:4px;color:var(--muted)}
+
+/* Puestos */
+.stage{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;grid-row:span 4;grid-template-rows:subgrid;row-gap:8px;min-width:0;align-content:start}
+.col header{display:flex;flex-direction:column;gap:2px}
+.col .nm{display:flex;align-items:center;gap:8px}
+.col h3{font-size:18px;line-height:1.2}
+.sw{width:18px;height:3px;border-radius:2px;flex:none;background:var(--c)}
+.col .kind{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+.col .recipe{font-size:12.5px;color:var(--body)}
+.h2tag{font-family:var(--mono);font-size:10px;border:1px dashed var(--accent);color:var(--accent);border-radius:4px;padding:0 4px;margin-left:auto;white-space:nowrap}
+.cv{position:relative;aspect-ratio:1/1.08;width:100%;max-width:100%;border-radius:8px;overflow:hidden;background:var(--tint)}
+.cv canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cv .st,.cv .tp{position:absolute;top:8px;font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:999px;background:var(--panel);color:var(--ink);border:1px solid var(--line);white-space:nowrap}
+.cv .st{left:8px;max-width:calc(100% - 92px);overflow:hidden;text-overflow:ellipsis}
+.cv .tp{right:8px;font-variant-numeric:tabular-nums}
+.lupa{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;min-height:100px}
+.lupa canvas{width:96px;height:96px;display:block}
+.lupa .cap{font-size:12.5px;line-height:1.4;color:var(--body)}
+.lupa .cap b{display:block;font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.under{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:baseline;justify-content:space-between}
+.lgd{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--body);align-items:center}
+.lgd b{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.lgd span{display:inline-flex;align-items:center;gap:6px}
+.lgd svg{width:22px;height:14px;flex:none}
+.h2note{font-size:13px;color:var(--body);display:flex;gap:10px;align-items:baseline;max-width:70ch}
+
+/* Lectura y gráfica */
+.explain{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;min-width:0}
+.ph-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.ph-head h2{font-size:23px}
+.ph-head .when{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.narr{margin-top:10px;display:flex;flex-direction:column;gap:12px}
+.narr p{max-width:68ch}
+.chain{display:flex;flex-wrap:wrap;gap:6px 4px;align-items:center;margin-top:2px}
+.chain span{font-size:12.5px;padding:4px 9px;border-radius:6px;background:var(--tint);color:var(--ink)}
+.chain span.k{background:var(--accent-tint)}
+.chain i{font-style:normal;color:var(--muted);font-size:12px}
+.cocina{font-size:13.5px;border-top:1px solid var(--line);padding-top:10px}
+.cocina b{color:var(--ink)}
+.badges{display:flex;flex-direction:column;gap:6px}
+.bdg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:baseline;font-size:13px}
+.bdg em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:1px 6px;border-radius:4px;white-space:nowrap}
+.bdg .ct{color:var(--muted)}
+.k-f{background:var(--ink);color:var(--paper)}
+.k-i{border:1px solid var(--ink);color:var(--ink)}
+.k-h{border:1px dashed var(--accent);color:var(--accent)}
+.k-o{background:var(--tint);color:var(--muted)}
+.prof{border-left:2px solid var(--gold);padding-left:12px;font-size:14px;display:none;flex-direction:column;gap:8px}
+.prof b.t{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:500}
+body.lvl-prof .prof{display:flex}
+.chart h2{font-size:18px}
+.chart .sub{margin-top:2px}
+.chart svg{width:100%;height:auto;display:block;margin-top:8px;overflow:visible}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:12.5px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend svg{width:26px;height:8px;margin:0}
+
+/* Tablas */
+.tbl-wrap{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+.results table{min-width:720px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+thead th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+thead th .sw{display:inline-block;vertical-align:middle;margin-right:6px}
+tbody th{font-weight:500;color:var(--ink)}
+.results tbody th{width:24%}
+tbody th small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+td .v{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+td .v b{font-weight:600;color:var(--ink);min-width:3.2em}
+td .v i{display:block;height:6px;border-radius:3px;background:var(--c);opacity:.85}
+td.na{color:var(--muted);font-size:12px}
+td.tx{font-size:13px}
+.ptab{display:none;margin-top:18px}
+body.lvl-prof .ptab{display:block}
+.ptab h3{font-size:16px}
+
+/* Lo esperado por caso */
+.expect{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:14px}
+.xc{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;grid-row:span 7;grid-template-rows:subgrid;row-gap:9px;min-width:0;background:var(--panel)}
+.xc h3{font-size:16.5px;display:flex;align-items:center;gap:8px}
+.xc .thumb{width:100%;aspect-ratio:1.45/1;border-radius:8px;display:block;background:var(--tint)}
+.xc .lb{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+.xc p,.xc li{font-size:13px}
+.xc ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:3px}
+.prof-bars{display:flex;flex-direction:column;gap:4px}
+.pb{display:grid;grid-template-columns:7.4em minmax(0,1fr) 5.4em;gap:8px;align-items:center;font-size:12px}
+.pb .tr{height:6px;border-radius:3px;background:var(--tint);overflow:hidden}
+.pb .tr i{display:block;height:100%;background:var(--c);border-radius:3px}
+.pb .n{font-family:var(--mono);text-align:right;color:var(--ink);font-size:11.5px}
+.xc .dist{border-top:1px dashed var(--line);padding-top:8px}
+
+/* Datos medidos */
+.dgrid{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+table.din{min-width:620px}
+table.din td{padding:7px 8px}
+table.din input{width:62px;text-align:right;font-family:var(--mono);font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 7px;font-variant-numeric:tabular-nums}
+table.din input:focus{border-color:var(--accent)}
+table.din input.bad{border-color:var(--accent);background:var(--accent-tint)}
+table.din td.mean{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.dbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dmsg{font-size:12.5px;color:var(--muted)}
+.banner{font-size:13px;background:var(--accent-tint);color:var(--ink);border-radius:8px;padding:8px 12px}
+.hyp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px;align-items:start}
+.hc{border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.hc h3{font-size:17px}
+.hc .stmt{font-size:13.5px;color:var(--body)}
+.hc .cmp{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.vr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;font-size:13px;border-top:1px solid var(--line);padding-top:7px}
+.vr .vv{color:var(--muted);font-size:12.5px;grid-column:1/-1}
+.vd{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:2px 7px;border-radius:4px;white-space:nowrap;text-transform:uppercase}
+.vd.ok{background:var(--ok-tint);color:var(--ok)}
+.vd.no{background:var(--accent-tint);color:var(--accent)}
+.vd.nc{background:var(--tint);color:var(--muted)}
+.hc .sum{font-size:13.5px;color:var(--ink);font-weight:500}
+.hc .simx{font-size:12.5px;color:var(--muted)}
+.dplots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}
+.dp{min-width:0}
+.dp h3{font-size:14.5px}
+.dp svg{width:100%;height:auto;display:block;margin-top:4px;overflow:visible}
+.small{font-size:12.5px}
+
+.hc .stg{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-top:6px}
+.hc .simx{font-size:13px;color:var(--body);background:var(--tint);border-radius:8px;padding:8px 10px}
+table.din thead th{text-align:center;vertical-align:bottom;font-size:10px;letter-spacing:.04em}
+table.din thead tr:first-child th{border-bottom:0;color:var(--ink)}
+table.din thead small{display:block;text-transform:none;letter-spacing:0;font-size:10px}
+.bars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:12px}
+.bc{min-width:0;border:1px solid var(--line);border-radius:10px;padding:12px 12px 10px}
+.bc h3{font-size:14.5px}
+.bc svg{width:100%;height:auto;display:block;margin-top:4px}
+.ord{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;font-size:12.5px;color:var(--ink);margin-top:6px;align-items:baseline}
+.ord b{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.ord .x{color:var(--accent);font-weight:600}
+.empty{font-size:13.5px;color:var(--muted);background:var(--tint);border-radius:8px;padding:12px 14px}
+.rz-list{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.rz{border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.rz h3{font-size:16.5px;display:flex;align-items:center;gap:8px}
+.rz .obs{margin:0;padding-left:18px;font-size:13px;color:var(--body);display:flex;flex-direction:column;gap:2px}
+.rz3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rz3>div{background:var(--tint);border-radius:8px;padding:10px 12px;font-size:13px;min-width:0}
+.rz3 .lb{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.rz .med{font-size:12.5px;color:var(--muted)}
+.notes.one{grid-template-columns:1fr}
+.notes.one ul{columns:2;column-gap:32px;display:block}
+.notes.one li{break-inside:avoid;margin-bottom:6px}
+
+/* Notas */
+.notes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.notes h2{font-size:19px;margin-bottom:8px}
+.notes ul,.notes ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.refs li{word-break:break-word}
+.refs a{color:var(--accent)}
+
+@media (max-width: 980px){
+  .top{grid-template-columns:1fr}
+  .stage,.expect{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .explain,.notes,.hyp{grid-template-columns:1fr}
+  .bars{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .notes.one ul{columns:1}
+  .butter{margin-left:0}
+}
+@media (max-width: 560px){
+  body{font-size:14.5px}
+  .stage{gap:10px}
+  .expect{grid-template-columns:1fr}
+  .xc{grid-row:auto;display:flex;flex-direction:column}
+  .col{padding:9px;gap:6px}
+  .col h3{font-size:15px}
+  .col .recipe{font-size:11.5px}
+  .lupa{grid-template-columns:1fr;justify-items:start;min-height:0}
+  .lupa canvas{width:76px;height:76px}
+  .bars,.rz3{grid-template-columns:1fr}
+  .lupa .cap{font-size:11.5px}
+  .cv .st{font-size:10px;max-width:calc(100% - 64px)}
+  .cv .tp{font-size:10px}
+  .segs .nm{font-size:10.5px}
+  .segs .nm .txt{display:none}
+  .segs .nm .sh{display:inline}
+  .card{padding:14px}
+  table.din{min-width:0}
+  table.din thead{display:none}
+  table.din tbody,table.din tr,table.din td,table.din th{display:block}
+  table.din tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 8px;padding:10px 0;border-bottom:1px solid var(--line)}
+  table.din th{grid-column:1/-1;border:0;padding:0}
+  table.din td{border:0;padding:0}
+  table.din td::before{content:attr(data-l);display:block;font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--muted);margin-bottom:2px}
+  table.din input{width:100%}
+  table.din td.mean{grid-column:1/-1}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">PR-3 · Bloque 2 · Panificación y Pastelería</p>
+      <h1>Simulador de batidos de espuma</h1>
+      <p class="lead">Cuatro batidos con la misma masa de huevo, el mismo azúcar y la misma harina. Cambia quién sostiene las burbujas: proteínas de la clara, lípidos de la yema o grasa añadida. Sigue el aire desde las varillas hasta el corte de la miga.</p>
+    </div>
+    <div class="fixed">
+      <div class="theme"><span class="ctl-lbl">Vista</span>
+        <span class="seg" role="group" aria-label="Vista clara u oscura"><button type="button" data-theme-btn="light" aria-pressed="false">Clara</button><button type="button" data-theme-btn="dark" aria-pressed="false">Oscura</button><button type="button" data-theme-btn="auto" aria-pressed="true">Sistema</button></span></div>
+      <span class="lbl">Iguales en las cuatro piezas</span>
+      <div class="chips"><span class="chip">Mismo volumen de batido</span><span class="chip">Mismo molde</span><span class="chip">Mismo tiempo de horno</span></div>
+      <p class="warn">Simulación cualitativa: representa el sentido de los efectos que describe la teoría. Los valores son índices ilustrativos, no predicciones de lo que se medirá.</p>
+    </div>
+  </header>
+
+  <section class="controls" aria-label="Controles de la simulación">
+    <div class="row">
+      <button class="btn primary" id="play" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path id="playIcon" d="M4 2.5v11l9-5.5z"/></svg><span id="playTxt">Pausa</span></button>
+      <button class="btn" id="restart" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2a5.8 5.8 0 1 1-5.5 4H1l2.6-3 2.6 3H4.3A4.1 4.1 0 1 0 8 3.9z"/></svg>Reiniciar</button>
+      <span class="grp"><span class="ctl-lbl">Velocidad</span>
+        <span class="seg" role="group" aria-label="Velocidad"><button type="button" id="sp05" data-sp="0.5" aria-pressed="false">0,5×</button><button type="button" id="sp1" data-sp="1" aria-pressed="true">1×</button><button type="button" id="sp2" data-sp="2" aria-pressed="false">2×</button></span></span>
+      <label class="chk" for="autoP"><input type="checkbox" id="autoP" checked>Pausa al final de cada fase</label>
+      <label class="butter" for="butter"><span class="ctl-lbl">Mantequilla, pieza 4</span><input id="butter" type="range" min="0" max="40" step="5" value="20"><output id="butterOut">20 g</output></label>
+    </div>
+    <div class="timeline" id="timeline" tabindex="0" role="slider" aria-label="Tiempo de la simulación" aria-valuemin="0" aria-valuemax="41" aria-valuenow="0">
+      <div class="segs" id="segs"></div>
+    </div>
+  </section>
+
+  <section class="stage" id="stage" aria-label="Los cuatro batidos"></section>
+  <div class="under">
+    <div class="lgd" aria-label="Leyenda de la lupa"><b>Lupa</b>
+      <span><svg viewBox="0 0 34 14" aria-hidden="true" style="width:30px"><path d="M4 5 L11 9 L18 5 L25 9 L31 5" stroke="#857B76" stroke-width="1.2" fill="none"/><circle cx="4" cy="5" r="3" fill="#E39B3A"/><circle cx="11" cy="9" r="3" fill="#4F86C6"/><circle cx="18" cy="5" r="3" fill="#E39B3A"/><circle cx="25" cy="9" r="3" fill="#4F86C6"/><circle cx="31" cy="5" r="3" fill="#E39B3A"/></svg>Proteína: naranja hacia el aire, azul hacia el agua</span>
+      <span><svg viewBox="0 0 22 14" aria-hidden="true"><path d="M3 7 H19" stroke="#E2C12B" stroke-width="2"/><circle cx="9" cy="7" r="2.6" fill="#E2C12B"/><circle cx="13" cy="7" r="2.6" fill="#E2C12B"/></svg>Puente S–S</span>
+      <span><svg viewBox="0 0 22 14" aria-hidden="true"><path d="M9 9 L8 5 L7 1 M13 9 L14 5 L15 1" stroke="#A39B95" stroke-width="1.2"/><circle cx="11" cy="10" r="3.4" fill="#8E63B8"/></svg>Lípido</span>
+      <span><svg viewBox="0 0 22 14" aria-hidden="true"><ellipse cx="11" cy="7" rx="8" ry="5.6" fill="#EAD7A6"/><ellipse cx="11" cy="7" rx="5" ry="3.4" fill="none" stroke="#BFA068" stroke-width=".7"/><ellipse cx="11" cy="7" rx="2.4" ry="1.6" fill="none" stroke="#BFA068" stroke-width=".7"/></svg>Almidón (los anillos se pierden al gelatinizar)</span>
+      <span><svg viewBox="0 0 22 14" aria-hidden="true"><circle cx="11" cy="7" r="5.5" fill="#F1C14E"/><circle cx="9.5" cy="5.5" r="1.4" fill="#fff" opacity=".8"/></svg>Grasa</span>
+      <span><svg viewBox="0 0 22 14" aria-hidden="true"><circle cx="7" cy="7" r="2" fill="#6FA3D2" opacity=".6"/><circle cx="15" cy="7" r="2" fill="#6FA3D2" opacity=".6"/></svg>Agua</span>
+    </div>
+    <p class="h2note"><span class="h2tag" style="margin:0">H2</span><span>Espumas separadas frente a genovesa: misma fórmula y distinto método de incorporar el aire. La simulación las muestra próximas; los datos de PR-3 deciden.</span></p>
+  </div>
+
+  <section class="explain">
+    <article class="card" id="narr" aria-live="polite"></article>
+    <article class="card chart">
+      <h2 id="chTitle">Volumen de espuma durante el batido</h2>
+      <p class="sub" id="chSub">Volumen relativo al del líquido sin batir</p>
+      <svg id="chart" viewBox="0 0 600 270" role="img" aria-label="Gráfica de la fase"></svg>
+      <div class="legend" id="legend"></div>
+    </article>
+  </section>
+
+  <section class="card results">
+    <div class="sec-h"><h2>Resultados de la simulación</h2>
+    <p class="sub">Cada fila aparece cuando la simulación alcanza la fase en que se mide, como en la práctica. Son valores ilustrativos del modelo, sin ninguna pieza como patrón: sirven para leer el orden y el sentido de los cambios. Tus medidas tendrán otras magnitudes.</p></div>
+    <div class="tbl-wrap"><table id="tbl"></table></div>
+  </section>
+
+  <section class="card">
+    <div class="sec-h"><h2>Qué se espera en cada caso</h2>
+    <p class="sub">Lo que predice la teoría y reproduce la simulación. El corte final está dibujado a la misma escala en las cuatro piezas, así que alturas y celdas se comparan a simple vista.</p></div>
+    <div class="expect" id="expect"></div>
+  </section>
+
+  <section class="card" id="datos">
+    <div class="sec-h"><h2>Contraste con los datos de PR-3</h2>
+    <p class="sub">Introduce lo que se midió en la práctica; lo que no se midiera puede quedar en blanco. Lo esperado se lleva a la escala de tus datos con un factor común por variable, de modo que ninguna pieza hace de patrón y se comparan el orden y las diferencias entre muestras. Admite coma o punto decimal.</p></div>
+    <div class="dgrid">
+      <div class="tbl-wrap"><table class="din" id="din"></table></div>
+      <div class="dbtns">
+        <button class="btn small" type="button" id="dEx">Probar con datos de ejemplo</button>
+        <button class="btn small" type="button" id="dClr">Borrar</button>
+        <button class="btn small" type="button" id="dCopy">Copiar resumen</button>
+        <span class="dmsg" id="dMsg" role="status"></span>
+      </div>
+      <p class="banner" id="dBanner" hidden>Estás viendo datos de ejemplo inventados. Sustitúyelos por los de tu sesión.</p>
+    </div>
+    <div class="hyp" id="hyp"></div>
+    <div class="legend" id="dLegend" style="margin-top:16px"></div>
+    <div class="bars" id="bars"></div>
+    <p class="sub small" style="margin-top:12px">Con una pieza por tratamiento (n = 1) se interpreta el sentido y la magnitud de cada diferencia, no su significación estadística. Las diferencias menores del 5 % se leen como no concluyentes (criterio orientativo de lectura).</p>
+    <pre id="dFallback" class="small" hidden style="white-space:pre-wrap;background:var(--tint);padding:10px;border-radius:8px;margin-top:10px"></pre>
+  </section>
+
+  <section class="card" id="razona">
+    <div class="sec-h"><h2>Razona las diferencias</h2>
+    <p class="sub">Cada tarjeta señala una pieza que se separó de lo esperado y propone pistas desde la formulación, la técnica y los defectos. Son preguntas para razonar con los datos de la sesión, no respuestas cerradas.</p></div>
+    <div class="rz-list" id="rzList"></div>
+  </section>
+
+  <section class="notes one">
+    <article class="card">
+      <h2>Cómo leer esta simulación</h2>
+      <ul>
+        <li><b>Las cuatro piezas son las de PR-3:</b> 120 g de huevo (clara, separado o entero), 60 g de azúcar y 60 g de harina floja, sin gasificante. La genovesa se bate a 40-45 °C y la cuarta pieza lleva además mantequilla fundida, cuya cantidad se ajusta con la barra.</li>
+        <li><b>Mismo volumen en el molde:</b> las piezas parten de la misma altura, pero no pesan lo mismo. El volumen específico es la medida que permite compararlas.</li>
+        <li><b>Valores ilustrativos:</b> indican el orden y el sentido de los cambios, sin ninguna pieza como patrón. Al contrastar, lo esperado se lleva a la escala de tus datos.</li>
+        <li><b>Etiquetas:</b> «base científica» es lo que describe la ciencia de los alimentos; «interpretación», una deducción a partir de ella; «criterio de obrador», la práctica profesional.</li>
+        <li><b>Tus datos</b> se guardan solo en este navegador. «Copiar resumen» los lleva a tu informe.</li>
+      </ul>
+    </article>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+const CONTENT={"edition": "est", "labels": {"f": ["BASE CIENTÍFICA", "k-f"], "i": ["INTERPRETACIÓN", "k-i"], "h": ["HIPÓTESIS", "k-h"], "o": ["CRITERIO DE OBRADOR", "k-o"]}, "narr": {"batido": {"when": "Fase 1 de 6 · batido", "title": "Batir: meter aire y estabilizarlo", "est": ["Las varillas meten aire y lo parten en burbujas cada vez más pequeñas. Cada burbuja necesita una película que la rodee. En la clara la forman proteínas globulares que se despliegan en la superficie y se enlazan entre sí; la película es fuerte y elástica, pero tarda en formarse. En la yema la forman sobre todo lípidos: llegan antes a la superficie y dan una película fluida, menos estable.", "La yema blanquea pronto y sube poco; la clara empieza despacio y llega más alto. En la gráfica se ve el cruce de las curvas."], "chain": ["Fracción del huevo", "Quién ocupa la interfase", "Película proteica o lipídica", "Número y tamaño de burbujas", "Capacidad espumante", "Espuma más o menos ligera"], "cocina": "<b>En el Obrador:<\/b> la clara llega a picos firmes y brillantes; la yema y el huevo entero aclaran su color y caen en cinta. En PR-3 se mide la densidad del batido.", "badges": [["f", "Las proteínas forman películas viscoelásticas fuertes pero lentas; los lípidos, películas rápidas y menos estables.", ""], ["f", "La yema perjudica la espuma porque desplaza a las proteínas de la clara.", ""], ["f", "El azúcar retrasa la formación de la espuma y mejora su estabilidad.", ""], ["o", "Batido de la genovesa a 40–45 °C y puntos de picos y de cinta.", ""], ["i", "La forma y la altura de las curvas son ilustrativas.", ""]], "prof": []}, "plegado": {"when": "Fase 2 de 6 · plegado", "title": "Plegar: lo que se pierde ya no vuelve", "est": ["Al plegar la harina se pierde parte del aire, y no se recupera: después del batido no se forman burbujas nuevas. Cuando se unen las espumas separadas, los lípidos de la yema llegan a las burbujas de clara y aparecen películas mixtas, más débiles.", "La mantequilla fundida añade más lípidos a esa competencia. Es más densa que la espuma y, si no se integra bien, se va al fondo."], "chain": ["Plegado y grasa", "Rotura y redistribución de películas", "Películas mixtas", "Menos burbujas retenidas", "Batido más denso", "Menor volumen posible"], "cocina": "<b>En el Obrador:<\/b> densidad del batido con recipiente tarado, llenado a cucharadas y enrasado. Un batido que pierde brillo y se vuelve fluido ha perdido aire.", "badges": [["f", "Después del batido no se forman burbujas nuevas; al plegar se pierden burbujas y los componentes se redistribuyen en películas mixtas.", ""], ["i", "Efecto de la mantequilla: el mismo mecanismo de competencia entre lípidos y proteínas.", ""], ["i", "Hundimiento de la grasa: la mantequilla es más densa que la espuma.", ""]], "prof": []}, "molde": {"when": "Fase 3 de 6 · al molde", "title": "Mismo volumen, distinta masa", "est": ["Se reparte el mismo volumen de batido en moldes iguales, así que las cuatro piezas empiezan a la misma altura (h₀). No pesan lo mismo: el batido con más aire pesa menos, y la etiqueta de cada molde indica su densidad.", "Para comparar piezas no basta la altura final; hace falta el volumen específico, que divide el volumen entre la masa."], "chain": ["Aire retenido", "Densidad del batido", "Masa en el molde", "Material que debe sostenerse", "Volumen específico", "Ligereza percibida"], "cocina": "<b>En el Obrador:<\/b> pesa cada molde lleno. A igual volumen, la diferencia de masa es la diferencia de densidad del batido.", "badges": [["i", "Condición de la simulación: mismo volumen por molde. En el protocolo de PR-3 se iguala la masa.", ""]], "prof": []}, "expansion": {"when": "Fase 4 de 6 · horno, 25 → 80 °C", "title": "Expandir antes de fijar", "est": ["Con el calor, el aire de las burbujas se dilata y el agua se evapora dentro de ellas; la mayor parte del aumento de volumen se debe al vapor. El batido, al mismo tiempo, se vuelve más fluido, y las burbujas pueden subir, unirse o escaparse.", "La película de clara se estira sin romperse. Las películas con lípidos son menos elásticas y se rompen antes. Estas fórmulas no llevan gasificante, de modo que todo el volumen sale del aire batido y del vapor. El termómetro marca en rojo la zona de fijación."], "chain": ["Temperatura", "Dilatación, vapor y caída de viscosidad", "Burbujas que crecen o se rompen", "Altura en aumento", "Gas que llegará a fijarse", "Ligereza de la miga"], "cocina": "<b>En el Obrador:<\/b> la base y los bordes calientan antes que el centro; en PR-3 la sonda en el centro marca el último punto en llegar.", "badges": [["f", "La mayor parte del aumento de volumen en el horno procede del vapor de agua; la película debe ser elástica para no romperse antes de fijar.", ""], ["f", "Con yema la espuma es menos estable y se recomienda un gasificante; los batidos con poca grasa calientan más rápido.", ""], ["i", "Gelificación temprana de la yema y velocidad de calentamiento de cada pieza.", ""]], "prof": []}, "fijacion": {"when": "Fase 5 de 6 · horno, 80–95 °C", "title": "Fijar: de espuma líquida a espuma sólida", "est": ["Entre 80 y 95 °C, con azúcar, el almidón gelatiniza y las proteínas coagulan. Los gránulos hinchados hacen de ladrillos y la red de proteína, de mortero: el batido líquido pasa a espuma sólida.", "Las paredes de las celdas se abren, el vapor escapa y la estructura deja de depender de la presión del gas. El cambio de color muestra el avance: la fijación empieza en la base y los bordes y termina en el centro."], "chain": ["Temperatura 80–95 °C", "Gelatinización y coagulación (ovoalbúmina 84–85 °C)", "Matriz rígida, celdas abiertas", "Espuma sólida", "Volumen fijado", "Miga estable"], "cocina": "<b>En el Obrador:<\/b> temperatura del centro con sonda. En la simulación, el centro es el último punto en fijar.", "badges": [["f", "Almidón y proteína fijan entre 80 y 95 °C en sistemas con azúcar («ladrillos y mortero»); la fijación empieza en la base.", ""], ["f", "La ovoalbúmina desnaturaliza hacia 84–85 °C; al fijar, las celdas se abren y se comunican.", ""], ["i", "Avance de la fijación desde los bordes laterales.", ""]], "prof": []}, "enfriado": {"when": "Fase 6 de 6 · enfriado y corte", "title": "Leer la miga", "est": ["Al salir del horno el gas se contrae. Si la estructura fijó bien, la pieza solo encoge un poco: las fórmulas con poco azúcar respecto a la harina encogen en lugar de hundirse. El corte guarda la historia de la espuma en el número, el tamaño y la uniformidad de las celdas.", "La grasa, de la yema o de la mantequilla, da una miga más tierna y húmeda. Los cuatro cortes se comparan en «Qué se espera en cada caso»."], "chain": ["Enfriado", "Contracción del gas", "Ligero encogimiento", "Miga final", "Volumen específico y alveolado", "Esponjosidad y ternura"], "cocina": "<b>En el Obrador:<\/b> PR-3 mide aquí el volumen específico, la altura central, el índice de simetría y la fracción de área alveolar con el aplicativo.", "badges": [["f", "Las fórmulas de proporción baja encogen en lugar de hundirse; la grasa da ternura y humedad.", ""], ["f", "En un estudio con bizcocho de aceite, batir por etapas dio una miga más uniforme sin cambiar la densidad ni el volumen.", ""]], "prof": []}}, "expect": {"AF": {"cambia": "Solo hay proteínas de clara en la superficie de las burbujas.", "mecanismo": "Película proteica fuerte y elástica: retiene más aire al batir y se estira sin romperse en el horno.", "espera": ["El batido más ligero, de menor densidad.", "La mayor subida y el mayor volumen específico.", "Miga blanca, de celdas finas y uniformes.", "La menos tierna, porque no lleva grasa."], "cocina": "Picos firmes y brillantes; el batido no se desmonta al plegar.", "distinto": "Si no monta, busca grasa o restos de yema en el bol o las varillas. Si queda baja, revisa el plegado."}, "SEP": {"cambia": "La clara monta sola y la yema forma otra espuma. Al unirlas, los lípidos llegan a parte de las burbujas.", "mecanismo": "Películas mixtas en parte de las burbujas, menos estables y menos elásticas que las de clara.", "espera": ["Batido más denso que el de solo claras.", "Menos subida y menor volumen específico que el angel food.", "Miga amarilla, fina y bastante uniforme.", "Más tierna que el angel food."], "cocina": "Dos espumas de textura distinta que se unen con pocos movimientos.", "distinto": "Si queda baja o densa, revisa la unión de las espumas y la duración del plegado."}, "GEN": {"cambia": "Proteínas y lípidos de la yema compiten desde el principio en una sola espuma, batida en caliente.", "mecanismo": "Película mixta desde el inicio: monta antes, llega menos alto y es menos estable.", "espera": ["Densidad y volumen próximos a los de las espumas separadas; la práctica lo pone a prueba (H2).", "Miga algo menos uniforme.", "Tierna por los lípidos de la yema."], "cocina": "Punto de cinta y color más claro que el del huevo de partida.", "distinto": "Si queda baja, revisa el punto de cinta y la temperatura del batido. Si la miga es densa, el plegado fue largo."}, "MANT": {"cambia": "Se añade mantequilla fundida al final del plegado.", "mecanismo": "Más lípidos compiten por la superficie de las burbujas y debilitan la película. La grasa, más densa que la espuma, tiende a hundirse.", "espera": ["El batido más denso.", "La menor subida y el menor volumen específico.", "Miga más cerrada, con algunas celdas grandes.", "La más tierna y húmeda."], "cocina": "Mantequilla tibia, añadida en hilo y con pocos movimientos (criterio de obrador).", "distinto": "Una capa densa y grasa en la base indica que la mantequilla se hundió; un volumen muy bajo, exceso de grasa o plegado largo."}}, "hyp": {"H1": {"tag": "A/B-1 · solo claras frente a espumas separadas", "title": "H1 · Formulación: la yema", "stmt": "Al montar, la espuma de solo claras debería retener más aire que la que lleva yema: sin lípidos, las proteínas de la clara forman una película más fuerte y el batido resulta menos denso. En el horno, esa espuma debería conservar más aire hasta fijar, con un volumen específico mayor que la fracción de área alveolar tendría que confirmar."}, "H2": {"tag": "A/B-2 · espumas separadas frente a genovesa", "title": "H2 · Técnica: cómo se incorpora el aire", "stmt": "Con la misma fórmula, el método de incorporar el aire (dos espumas en frío frente a una espuma de huevo entero en caliente) cambia el aire que se retiene al montar y el que se conserva tras fijar."}, "G": {"tag": "Genovesa frente a genovesa con mantequilla", "title": "Grasa añadida", "stmt": "La mantequilla aporta lípidos que compiten con las proteínas por la superficie de las burbujas. Se espera un batido más denso, menos volumen específico y menos fracción de área alveolar, a cambio de una miga más tierna."}}, "heads": {"batido_menos": "Al montar retuvo menos aire del esperado", "batido_mas": "Al montar retuvo más aire del esperado", "horno_menos": "En el horno conservó menos aire del esperado", "horno_mas": "En el horno conservó más aire del esperado", "agua_mas": "Perdió más agua de la esperada", "agua_menos": "Perdió menos agua de la esperada", "ternura_mas": "Resultó más tierna de lo esperado", "ternura_menos": "Resultó menos tierna de lo esperado"}, "med": {"batido": "Revisa también la medida: la densidad se toma en los 2 minutos siguientes al batido, llenando a cucharadas sin dejar huecos y enrasando sin golpear.", "horno": "Revisa también la medida: ¿el volumen se midió con semillas o por cálculo geométrico? Un abombado o un hundimiento alteran mucho el cálculo. Para la fracción de área alveolar, misma luz y misma distancia en todas las fotos.", "agua": "Revisa también la medida: todas las piezas deben pesarse al mismo tiempo tras salir del horno, con la misma tara.", "ternura": "Revisa también la medida: la ternura la evalúan varias personas, con la pieza a la misma temperatura y en la misma zona de la miga."}, "reason": {"generic": {"batido_menos": {"f": "¿Había lípidos donde no debía? Un resto de yema o de grasa compite con las proteínas por la superficie de las burbujas, y la espuma retiene menos aire.", "t": "Una espuma corta de batido, o plegada con demasiados movimientos, llega al molde con menos aire.", "d": "Batido que pierde brillo y se vuelve fluido: las burbujas se unen y suben antes de llegar al horno."}, "batido_mas": {"f": "La fórmula estabilizó la superficie de las burbujas mejor de lo previsto. ¿Qué componente pudo reforzar la película?", "t": "Un batido más largo o a mejor temperatura, y un plegado corto, conservan más aire.", "d": "Sin defecto aparente. Comprueba que el recipiente de medida no tuviera huecos de aire."}, "horno_menos": {"f": "Piensa en cuándo fijó la estructura. El azúcar retrasa la gelatinización del almidón: con menos azúcar por gramo de agua, la pieza fija antes y tiene menos tiempo para expandirse.", "t": "Temperatura y posición en el horno, tiempo de espera hasta hornear y apertura de la puerta: una espuma que espera o se enfría pierde aire antes de fijar.", "d": "Si subió y después bajó, las paredes de las burbujas se rompieron antes de fijar (colapso). Si encogió al enfriar, la estructura era débil."}, "horno_mas": {"f": "La fórmula retrasó la fijación o dio paredes más elásticas: más tiempo y más capacidad para expandirse.", "t": "Un batido que entró al horno sin esperar y un horneado regular conservan el aire hasta fijar.", "d": "Sin defecto aparente. Si la miga es muy abierta o irregular, varias burbujas pudieron unirse."}, "agua_mas": {"f": "¿Cuánta agua aporta la fórmula? Con más agua y un batido más ligero, más vapor puede escapar.", "t": "Tiempo y temperatura de horno, posición de la pieza y tiempo hasta pesarla en caliente.", "d": "Una pieza que pierde mucha agua tiende a resultar más seca y firme."}, "agua_menos": {"f": "La grasa y los sólidos de la yema retienen agua y frenan su evaporación.", "t": "¿Salieron todas las piezas a la vez? ¿Se pesaron al mismo tiempo?", "d": "Una pieza que conserva demasiada agua puede quedar húmeda o gomosa en la base."}, "ternura_mas": {"f": "La ternura no depende solo de la grasa: una miga con más aire y paredes finas se percibe más tierna.", "t": "Un plegado suave y un horneado que no reseca la pieza favorecen la ternura.", "d": "Sin defecto. Compara con el volumen específico: ¿la pieza más tierna es también la que conservó más aire?"}, "ternura_menos": {"f": "Menos grasa, o más agua perdida, dan una miga más firme.", "t": "Un horneado largo reseca la miga y un plegado excesivo la densifica.", "d": "Miga densa o seca: revisa la pérdida por cocción y el volumen específico."}}, "AF": {"batido_menos": {"f": "Sin yema, la película es solo proteica y debería retener más aire. Si no fue así, sospecha de grasa o yema en el bol, o de la falta de crémor tártaro, que en el angel food clásico estabiliza la espuma de clara.", "t": "¿Se montó la clara en exceso? Una espuma seca y granulosa se rompe al plegar la harina, y un volumen tan grande de espuma pide más movimientos para integrarla (criterio de obrador)."}, "horno_menos": {"f": "En PR-3 el angel food lleva el mismo azúcar que las demás piezas, menos que en su receta clásica, y no lleva crémor tártaro. La clara aporta más agua que la yema, así que el azúcar queda más diluido: una espuma menos viscosa, que drena antes, y un almidón que gelatiniza a menor temperatura. ¿Pudo fijar pronto y con poca expansión?", "t": "Un batido tan ligero calienta antes y fija antes. ¿Se horneó a la vez y en la misma posición que las demás? ¿Cómo se enfrió? El angel food se suele enfriar boca abajo para que no baje (criterio de obrador).", "d": "La clara aporta menos proteína que la mezcla de clara y yema (unos 13 g frente a unos 15 g en las piezas con yema), y la yema añade proteínas que también coagulan. Con menos red de proteína, las paredes resisten peor: la pieza puede bajar en la fijación o encoger al enfriar."}, "agua_mas": {"f": "La clara tiene cerca de un 88 % de agua y la yema, un 50 %: el angel food es la pieza con más agua y con el batido más ligero, que calienta antes. Se esperaba que perdiera más peso; si la pérdida supera lo esperado, busca la causa en la técnica."}, "ternura_menos": {"f": "Es la única pieza sin lípidos, así que se espera la miga menos tierna. Si además perdió más agua, la miga resulta más seca."}}, "SEP": {"batido_menos": {"t": "¿Quedaron restos de yema en la clara al separar los huevos? ¿La unión de las espumas fue brusca?"}, "horno_mas": {"f": "La yema aporta sólidos, proteínas que gelifican pronto (hacia 65 °C) y lípidos que suavizan la miga. Aporta menos agua, así que el azúcar queda más concentrado: un batido más viscoso, que pierde menos burbujas y fija algo más tarde.", "t": "Batir por separado deja que la clara alcance su máximo sin lípidos; con una unión suave, buena parte de las burbujas conserva su película proteica.", "d": "Sin defecto: buena retención de aire. Comprueba si la miga es uniforme."}, "ternura_mas": {"f": "Se suman dos efectos: los lípidos de la yema y una miga con más aire y paredes finas."}}, "GEN": {"batido_menos": {"t": "¿Se alcanzó el punto de cinta? ¿Se mantuvo el huevo a 40–45 °C durante el batido? Un batido frío o corto monta menos (criterio de obrador)."}, "horno_menos": {"f": "Película mixta desde el principio: menos elástica, se rompe antes al expandirse."}}, "MANT": {"batido_menos": {"f": "Los lípidos de la mantequilla compiten por la superficie de las burbujas: la espuma pierde aire al incorporarla.", "t": "¿La mantequilla estaba muy caliente o se añadió de golpe? ¿Cuántos movimientos hicieron falta para integrarla?", "d": "Si se ve una capa densa y grasa en la base, la mantequilla se hundió."}, "horno_mas": {"f": "En batidos con grasa, la grasa fundida puede recubrir la burbuja y ayudarla a crecer sin romperse. En espumas de huevo este efecto no está medido: vale la pena discutirlo."}, "ternura_menos": {"f": "Con mantequilla se espera la miga más tierna. ¿Se hundió la grasa y quedó concentrada en la base?"}}}};
+const EDITION=CONTENT.edition;
+/* ---------- utilidades ---------- */
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
+const sig=x=>1/(1+Math.exp(-x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function randn(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function hex(h){h=String(h).trim().replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];return n.map(v=>isNaN(v)?128:v)}
+function mix(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
+const rgb=(c,a)=>a===undefined?`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`:`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const fmt=(x,d)=>x.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MONO='IBM Plex Mono, ui-monospace, monospace';
+
+/* ---------- fases ---------- */
+const PH=[
+  {k:'batido',  n:'Batido',            s:'Batido',     t0:0, t1:9},
+  {k:'plegado', n:'Plegado',           s:'Plegado',    t0:9, t1:14},
+  {k:'molde',   n:'Al molde',          s:'Molde',      t0:14,t1:17},
+  {k:'expansion',n:'Horno · expansión',s:'Expansión',  t0:17,t1:27},
+  {k:'fijacion',n:'Horno · fijación',  s:'Fijación',   t0:27,t1:35},
+  {k:'enfriado',n:'Enfriado y corte',  s:'Enfriado',   t0:35,t1:41},
+];
+const T_END=41, OVEN0=17, OVEN1=35;
+const phaseOf=t=>{for(let i=0;i<PH.length;i++)if(t<PH[i].t1)return i;return PH.length-1};
+const ovenU=t=>clamp((t-OVEN0)/(OVEN1-OVEN0),0,1);
+
+/* ---------- condiciones ---------- */
+const COND=[
+  {id:'AF',  name:'Solo claras', kind:'Angel food', cvar:'--c-af', dash:'', short:'Claras',
+   recipe:'120 g de clara · 60 g de azúcar · 60 g de harina. Clara montada con el azúcar.'},
+  {id:'SEP', name:'Claras y yemas separadas', kind:'Espumas separadas · técnica de soletilla', cvar:'--c-sep', dash:'7 4', h2:true, short:'Separadas',
+   recipe:'≈ 78 g de clara y 42 g de yema batidas por separado, cada una con la mitad del azúcar · 60 g de harina.'},
+  {id:'GEN', name:'Huevo entero', kind:'Genovesa · espuma única', cvar:'--c-gen', dash:'2 3', h2:true, short:'Genovesa',
+   recipe:'120 g de huevo entero y 60 g de azúcar batidos a 40–45 °C · 60 g de harina.'},
+  {id:'MANT',name:'Huevo entero + mantequilla', kind:'Genovesa con grasa añadida', cvar:'--c-mant', dash:'9 3 2 3', short:'Con mantequilla', recipe:''},
+];
+const CID={};COND.forEach(c=>CID[c.id]=c);
+const FOOD={
+  AF:  {liq:hex('#E9ECE2'),foam0:hex('#F4F6EF'),foam1:hex('#FFFFFF'),batter:hex('#FCFBF6'),crumb:hex('#ECDFBF'),water:hex('#EEF1EA')},
+  SEP: {liq:hex('#E9ECE2'),foam0:hex('#F4F6EF'),foam1:hex('#FFFFFF'),yliq:hex('#EDB33A'),yfoam0:hex('#F1C35A'),yfoam1:hex('#F8E3A0'),batter:hex('#FAEDC4'),crumb:hex('#E9C670'),water:hex('#F7EBC4')},
+  GEN: {liq:hex('#EFBE48'),foam0:hex('#F2C861'),foam1:hex('#F8E6AA'),batter:hex('#F9EABD'),crumb:hex('#E6C168'),water:hex('#F7EBC4')},
+  MANT:{liq:hex('#EFBE48'),foam0:hex('#F2C861'),foam1:hex('#F8E6AA'),batter:hex('#F7E4AE'),crumb:hex('#E0B656'),water:hex('#F7EBC4')},
+};
+const CRUST=hex('#B87531'), FAT=hex('#E3B13C'), FLOUR=hex('#E6D9BF'), STARCH=hex('#E2CB98'), METAL=hex('#8F8784'), METAL_D=hex('#5E5754');
+const PROT=hex('#C00000'), PROT_D=hex('#7E0D0D'), LIPID=hex('#D9A441'), BUBW=hex('#8B6E4E');
+
+/* ---------- modelo ---------- */
+const LIQ_FLOUR=0.27, BUT_V=1/(0.91*150), R_HEIGHT=1.15, R_CENTER=1.12;
+function whipG(w,tau,n){const g=x=>1-Math.exp(-Math.pow(x/tau,n));return g(clamp(w,0,1))/g(1)}
+function params(id,b){
+  const P={
+    AF:{OR:3.6,tau:0.42,n:1.6,s:0.95,e:0.95,lf:0.14,mu0:1.0,yg:0,k:1.0,T0:24,rMed:2.7,sg:0.20},
+    SEP:{ORw:3.6,tauW:0.42,nW:1.6,ORy:1.3,tauY:0.16,nY:1.0,s:0.70,e:0.72,lf:0.20,mu0:0.88,yg:0.35,k:0.94,T0:24,rMed:2.9,sg:0.24},
+    GEN:{OR:2.5,tau:0.26,n:1.2,s:0.66,e:0.68,lf:0.17,mu0:0.84,yg:0.5,k:0.94,T0:30,rMed:3.3,sg:0.34},
+  };
+  if(id==='MANT'){const p=Object.assign({},P.GEN);p.s-=0.0065*b;p.e-=0.0065*b;p.mu0-=0.006*b;p.k-=0.003*b;p.rMed+=0.025*b;p.sg+=0.004*b;p.lb=0.008*b;p.b=b;return p}
+  return Object.assign({},P[id],{lb:0,b:0});
+}
+function airWhip(id,p,w){
+  if(id==='SEP')return 0.6*p.ORw*whipG(w,p.tauW,p.nW)+0.4*p.ORy*whipG(w,p.tauY,p.nY);
+  return p.OR*whipG(w,p.tau,p.n);
+}
+function airFold(m,q){return m.air0*(1-m.p.lf*smooth(q/0.6))*(1-m.p.lb*smooth((q-0.55)/0.4))}
+function buildModel(id,b){
+  const p=params(id,b);
+  const air0=airWhip(id,p,1), airF=air0*(1-p.lf)*(1-p.lb);
+  const nonair=1+LIQ_FLOUR+p.b*BUT_V, phi=airF/(airF+nonair);
+  const rhoM=(240+p.b)/(150*(1+LIQ_FLOUR)+p.b/0.91), rho=rhoM*(1-phi);
+  const NP=900,PMAX=1.9,c1=0.38,c2=0.28;
+  const A={T:new Float32Array(NP+1),S:new Float32Array(NP+1),G:new Float32Array(NP+1),L:new Float32Array(NP+1),E:new Float32Array(NP+1)};
+  let L1=0,L2=0,Tp=p.T0,Gp=1,iset=NP;
+  for(let i=0;i<=NP;i++){
+    const pp=PMAX*i/NP,f=1-Math.exp(-Math.pow(pp/0.526,1.8));
+    const T=p.T0+(100-p.T0)*f, S=sig((T-88)/2.0);
+    const G=((T+273)/(p.T0+273))*(1+1.1*Math.pow((T-p.T0)/(100-p.T0),3));
+    const mu=p.mu0*Math.exp(-(T-25)/45)*(1+p.yg*sig((T-65)/3))*(1+10*S);
+    const dT=T-Tp,dG=G-Gp;Tp=T;Gp=G;
+    L1+=c1*(1-p.s)/mu*(1-S)*dT/75; L2+=c2*(1-p.e)*Math.max(0,dG)*(1-S);
+    const L=1-Math.exp(-(L1+L2));
+    A.T[i]=T;A.S[i]=S;A.G[i]=G;A.L[i]=L;A.E[i]=(1-phi)+phi*G*(1-L);
+    if(iset===NP&&S>=0.9)iset=i;
+  }
+  const pset=PMAX*iset/NP, Eset=A.E[iset], Gset=A.G[iset], Lset=A.L[iset];
+  const shrink=0.035+0.035*(1-p.s), Efin=Eset*(1-shrink);
+  const phiFin=phi*Gset*(1-Lset)/Eset;
+  const at=(arr,pp)=>{const x=clamp(pp,0,PMAX)/PMAX*NP,i=Math.floor(x),j=Math.min(NP,i+1);return arr[i]+(arr[j]-arr[i])*(x-i)};
+  const band=id==='MANT'?0.075*clamp((p.b-8)/32,0,1):0;
+  return {id,p,air0,airF,phi,rho,A,at,pset,Eset,Gset,Lset,shrink,Efin,phiFin,PMAX,band,
+    uSetC:pset/(p.k*R_CENTER), uSetH:pset/(p.k*R_HEIGHT)};
+}
+function rloc(xn,zAbs,h){const db=zAbs, ds=Math.min(xn,1-xn), dt=Math.max(0,h-zAbs);return 1+0.55*Math.exp(-Math.min(db,ds)/0.10)+0.22*Math.exp(-dt/0.07)}
+function heightE(m,u){return m.at(m.A.E,Math.min(m.p.k*u*R_HEIGHT,m.pset))}
+function domeAmp(m,u){return 0.045*smooth((u-m.uSetC+0.18)/0.22)}
+function centerT(m,u){return m.at(m.A.T,m.p.k*u*R_CENTER)}
+function centerS(m,u){return m.at(m.A.S,m.p.k*u*R_CENTER)}
+
+/* ---------- burbujas ---------- */
+const H0_REL=0.42;
+function genMold(m,seed){
+  const r=rng(seed), out=[], p=m.p, refW=220;
+  const avis=clamp(0.75*(m.phi-0.35)/0.45,0.18,0.66);
+  const area=refW*refW*H0_REL*(1-m.band), meanA=Math.PI*p.rMed*p.rMed*Math.exp(2*p.sg*p.sg);
+  const N=Math.round(avis*area/meanA), grid=new Map(), cell=10, key=(gx,gy)=>gx+','+gy;
+  let tries=0;
+  while(out.length<N&&tries<N*40){
+    tries++;
+    const rr=p.rMed*Math.exp(p.sg*randn(r));
+    const x=0.025+0.95*r(), z=m.band+0.03+(0.94-m.band)*r();
+    const X=x*refW, Y=z*refW*H0_REL, gx=Math.floor(X/cell), gy=Math.floor(Y/cell);
+    let ok=true;
+    for(let a=-2;a<=2&&ok;a++)for(let b2=-2;b2<=2&&ok;b2++){const l=grid.get(key(gx+a,gy+b2));if(l)for(const q of l){if(Math.hypot(q.X-X,q.Y-Y)<(q.rr+rr)*0.92){ok=false;break}}}
+    if(!ok)continue;
+    const o={x,z,r:rr/refW,X,Y,rr};
+    o.th=Math.pow(r(),clamp(0.6+0.45*rr/p.rMed,0.7,1.7));
+    o.g=1+(r()<0.28?1.6*(1-p.s):0);
+    o.rl=rloc(x,z*H0_REL,H0_REL);
+    o.jit=[0,0,0,0,0,0,0].map(()=>0.72+0.45*r()); o.rot=r()*6.28;
+    const g=grid.get(key(gx,gy));if(g)g.push(o);else grid.set(key(gx,gy),[o]);
+    out.push(o);
+  }
+  const NP=m.A.L.length-1;
+  for(const o of out){
+    let pl=Infinity;
+    for(let i=0;i<=NP;i++){if(m.A.L[i]>=o.th){pl=m.PMAX*i/NP;break}}
+    o.uLoss=pl>m.pset?Infinity:pl/(m.p.k*o.rl);
+  }
+  return out;
+}
+function genBeaker(seed,n,big){const r=rng(seed),out=[];for(let i=0;i<n;i++)out.push({x:0.04+0.92*r(),y:r(),r:big*(0.65+0.7*r()),ord:r(),th:r()});return out}
+
+/* ---------- estado ---------- */
+let butter=20, level='est', speed=1, t=0, playing=!reduceMotion, last=null, autoPause=true, dirty=true, dirtyX=true;
+if(reduceMotion)t=T_END;
+const M={}, BUB={};
+function rebuild(id){
+  const m=buildModel(id,id==='MANT'?butter:0); M[id]=m;
+  const seed={AF:11,SEP:23,GEN:37,MANT:41}[id];
+  BUB[id]={mold:genMold(m,seed),beak:genBeaker(seed+5,id==='AF'?170:150,id==='AF'?5.2:6.2),
+    beakY:genBeaker(seed+9,60,7.5),flour:genBeaker(seed+13,46,1),fat:genBeaker(seed+17,14,1)};
+}
+COND.forEach(c=>rebuild(c.id));
+
+/* ---------- tokens de tema ---------- */
+let TK={};
+function readTokens(){
+  const cs=getComputedStyle(document.documentElement), g=n=>cs.getPropertyValue(n).trim();
+  TK={panel:hex(g('--panel')),tint:hex(g('--tint')),line:hex(g('--line')),ink:hex(g('--ink')),muted:hex(g('--muted')),accent:hex(g('--accent')),accentTint:hex(g('--accent-tint')),paper:hex(g('--paper'))};
+}
+/* selector de vista: clara, oscura o la del sistema */
+const THKEY='pr3-vista';
+function applyTheme(v){
+  if(v==='light'||v==='dark')document.documentElement.setAttribute('data-theme',v);else document.documentElement.removeAttribute('data-theme');
+  document.querySelectorAll('[data-theme-btn]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.themeBtn===(v||'auto'))));
+}
+let theme0='auto';try{theme0=localStorage.getItem(THKEY)||'auto'}catch(_){}
+applyTheme(theme0);
+document.querySelectorAll('[data-theme-btn]').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.themeBtn;applyTheme(v);try{localStorage.setItem(THKEY,v)}catch(_){}}));
+readTokens();
+const onTheme=()=>{readTokens();dirty=true;dirtyX=true};
+if(window.matchMedia){const mq=window.matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',onTheme);else if(mq.addListener)mq.addListener(onTheme)}
+new MutationObserver(onTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
+
+/* ---------- DOM: puestos ---------- */
+const stage=document.getElementById('stage');
+const UI={};
+COND.forEach(c=>{
+  const el=document.createElement('article');el.className='col';el.style.setProperty('--c',`var(${c.cvar})`);
+  el.innerHTML=`<header><div class="nm"><span class="sw"></span><h3>${c.name}</h3>${c.h2?'<span class="h2tag" title="Hipótesis H2 de PR-3">H2</span>':''}</div><p class="kind">${c.kind}</p></header>
+  <p class="recipe"></p>
+  <div class="cv"><canvas aria-hidden="true"></canvas><span class="st"></span><span class="tp"></span></div>
+  <div class="lupa"><canvas aria-hidden="true"></canvas><p class="cap"><b>Superficie de una burbuja</b><span></span></p></div>`;
+  stage.appendChild(el);
+  UI[c.id]={cv:el.querySelector('.cv canvas'),st:el.querySelector('.st'),tp:el.querySelector('.tp'),lupa:el.querySelector('.lupa canvas'),cap:el.querySelector('.cap span'),recipe:el.querySelector('.recipe'),_st:'',_tp:'',_cap:''};
+  UI[c.id].recipe.textContent=c.recipe;
+});
+function setMantRecipe(){UI.MANT.recipe.textContent=butter>0?`Como la genovesa, con ${butter} g de mantequilla fundida incorporada al final del plegado.`:'Con 0 g de mantequilla es idéntica a la genovesa.'}
+setMantRecipe();
+function fit(cv){
+  const r=cv.getBoundingClientRect(), d=Math.min(2,window.devicePixelRatio||1);
+  const w=Math.max(1,Math.round(r.width*d)), h=Math.max(1,Math.round(r.height*d));
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}
+  const ctx=cv.getContext('2d');ctx.setTransform(d,0,0,d,0,0);
+  return {ctx,W:r.width,H:r.height};
+}
+
+/* ---------- dibujo: vaso, varillas, espátula ---------- */
+function drawBeaker(ctx,x,yF,bw,bh,alpha){
+  ctx.save();ctx.globalAlpha=alpha;
+  ctx.strokeStyle=rgb(TK.muted,0.8);ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(x-3,yF-bh);ctx.lineTo(x-3,yF-6);ctx.quadraticCurveTo(x-3,yF+3,x+6,yF+3);ctx.lineTo(x+bw-6,yF+3);ctx.quadraticCurveTo(x+bw+3,yF+3,x+bw+3,yF-6);ctx.lineTo(x+bw+3,yF-bh);ctx.stroke();
+  ctx.strokeStyle=rgb(TK.muted,0.25);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+3,yF-bh+6);ctx.lineTo(x+3,yF-12);ctx.stroke();
+  ctx.strokeStyle=rgb(TK.muted,0.35);ctx.lineWidth=1;
+  for(let i=1;i<=6;i++){const y=yF-bh*i/6.5;ctx.beginPath();ctx.moveTo(x+bw+3,y);ctx.lineTo(x+bw-4,y);ctx.stroke()}
+  ctx.restore();
+}
+function foamFill(ctx,x,yTop,bw,yLiq,col){
+  ctx.fillStyle=rgb(col);ctx.beginPath();ctx.moveTo(x,yLiq);ctx.lineTo(x,yTop+4);
+  const n=8;for(let i=0;i<=n;i++){ctx.lineTo(x+bw*i/n,yTop+Math.sin(i*1.7)*2.2)}
+  ctx.lineTo(x+bw,yLiq);ctx.closePath();ctx.fill();
+}
+function drawFoamBubbles(ctx,list,x,yTop,bw,yLiq,scale,vis,popQ){
+  const hgt=yLiq-yTop; if(hgt<2)return;
+  ctx.save();ctx.beginPath();ctx.rect(x,yTop+1,bw,hgt);ctx.clip();
+  ctx.lineWidth=0.8;ctx.strokeStyle=rgb(BUBW,0.5);ctx.fillStyle='rgba(255,255,255,0.5)';
+  for(const b of list){
+    if(b.ord>vis)continue;
+    let a=1;if(popQ!==undefined&&b.th<popQ){a=clamp(1-(popQ-b.th)*12,0,1);if(a<=0)continue}
+    ctx.globalAlpha=a;ctx.beginPath();ctx.arc(x+b.x*bw,yTop+b.y*hgt,Math.max(0.9,b.r*scale),0,6.2832);ctx.fill();ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawWhisk(ctx,cx,yTip,len,width,ang){
+  ctx.save();ctx.lineCap='round';
+  ctx.strokeStyle=rgb(METAL_D);ctx.lineWidth=Math.max(2,width*0.16);
+  ctx.beginPath();ctx.moveTo(cx,yTip-len*1.05);ctx.lineTo(cx,yTip-len*0.62);ctx.stroke();
+  ctx.lineWidth=1.1;
+  for(let k=0;k<4;k++){const rx=Math.abs(Math.cos(ang+k*Math.PI/4))*width*0.5+0.6;
+    ctx.strokeStyle=rgb(mix(METAL,METAL_D,k%2?0.2:0.55),0.9);
+    ctx.beginPath();ctx.ellipse(cx,yTip-len*0.31,rx,len*0.31,0,0,6.2832);ctx.stroke()}
+  ctx.restore();
+}
+function drawSpatula(ctx,px,py,len,ang){
+  ctx.save();ctx.translate(px,py);ctx.rotate(ang);ctx.lineCap='round';
+  ctx.strokeStyle=rgb(hex('#7A5A3A'));ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,len*0.55);ctx.stroke();
+  ctx.fillStyle=rgb(hex('#C7C1BD'),0.95);ctx.strokeStyle=rgb(METAL_D,0.7);ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(0,len*0.78,len*0.11,len*0.24,0,0,6.2832);ctx.fill();ctx.stroke();
+  ctx.restore();
+}
+function drawThermo(ctx,x,yTop,yBot,T,W){
+  const w=Math.max(5,W*0.026), tr=v=>yBot-(clamp(v,15,100)-15)/85*(yBot-yTop);
+  ctx.save();
+  ctx.fillStyle=rgb(TK.panel);ctx.strokeStyle=rgb(TK.muted,0.7);ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,yTop,w,yBot-yTop,w/2):ctx.rect(x-w/2,yTop,w,yBot-yTop);ctx.fill();ctx.stroke();
+  ctx.fillStyle=rgb(TK.accent,0.16);ctx.fillRect(x-w/2+1,tr(95),w-2,tr(80)-tr(95));
+  ctx.fillStyle=rgb(TK.accent);ctx.fillRect(x-w/2+1.5,tr(T),w-3,yBot-tr(T));
+  ctx.beginPath();ctx.arc(x,yBot+w*0.55,w*0.95,0,6.2832);ctx.fill();
+  if(W>200){ctx.font=`500 9px ${MONO}`;ctx.fillStyle=rgb(TK.muted);ctx.textAlign='left';
+    ctx.fillText('95',x+w/2+3,tr(95)+3);ctx.fillText('80',x+w/2+3,tr(80)+3)}
+  ctx.restore();
+}
+
+/* ---------- escena completa (también para las miniaturas) ---------- */
+function geom(W,H,thumb){return thumb?{yF:H*0.95,mx:W*0.06,mw:W*0.88,wallH:H*0.86}:{yF:H*0.92,mx:W*0.09,mw:W*0.70,wallH:H*0.62}}
+let OFF=null;
+function drawScene(ctx,W,H,id,tt,thumb){
+  const m=M[id], B=BUB[id], F=FOOD[id];
+  ctx.globalAlpha=1;ctx.setLineDash([]);ctx.clearRect(0,0,W,H);
+  const u=ovenU(tt), G0=geom(W,H,thumb), yF=G0.yF, scale=W/280;
+  ctx.fillStyle=rgb(TK.tint);ctx.fillRect(0,0,W,H);
+  /* horno: resistencias y calor */
+  const ovenI=(!thumb&&tt>=OVEN0)?smooth((tt-OVEN0)/1)*(1-smooth((tt-OVEN1)/1.4)):0;
+  if(ovenI>0){
+    let g=ctx.createLinearGradient(0,H,0,H*0.45);g.addColorStop(0,`rgba(232,96,40,${0.26*ovenI})`);g.addColorStop(1,'rgba(232,96,40,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    g=ctx.createLinearGradient(0,0,0,H*0.3);g.addColorStop(0,`rgba(232,96,40,${0.16*ovenI})`);g.addColorStop(1,'rgba(232,96,40,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle=`rgba(214,72,30,${0.75*ovenI})`;ctx.lineWidth=2.2;ctx.lineCap='round';
+    [H-3.5,3.5].forEach(y=>{ctx.beginPath();for(let x=W*0.06;x<=W*0.94;x+=2){const yy=y+Math.sin(x/W*Math.PI*10)*1.4;x===W*0.06?ctx.moveTo(x,yy):ctx.lineTo(x,yy)}ctx.stroke()});
+  }
+  /* ---- vaso ---- */
+  const beakA=thumb?0:(tt<14?1:1-smooth((tt-14)/1.0));
+  if(beakA>0){
+    const BH=H*0.80, Al=(0.12*H)*(0.5*W);
+    if(tt<9&&id==='SEP'){
+      const w=tt/9, bw=W*0.30, gap=W*0.07, x1=W*0.08, x2=x1+bw+gap, p=m.p;
+      const parts=[{x:x1,frac:0.6,air:0.6*p.ORw*whipG(w,p.tauW,p.nW),liq:F.liq,f0:F.foam0,f1:F.foam1,list:B.beak,big:1,lab:'clara'},{x:x2,frac:0.4,air:0.4*p.ORy*whipG(w,p.tauY,p.nY),liq:F.yliq,f0:F.yfoam0,f1:F.yfoam1,list:B.beakY,big:1.2,lab:'yema'}];
+      for(const q of parts){
+        const liqH=q.frac*(1-0.75*smooth(w/0.8))*Al/bw, totH=(q.frac+q.air)*Al/bw, yLiq=yF-liqH, yTop=yF-totH;
+        ctx.globalAlpha=beakA;ctx.fillStyle=rgb(q.liq);ctx.fillRect(q.x,yLiq,bw,liqH);
+        foamFill(ctx,q.x,yTop,bw,yLiq,mix(q.f0,q.f1,smooth(w*1.3)));
+        drawFoamBubbles(ctx,q.list,q.x,yTop,bw,yLiq,scale*(1.55-0.85*w)*q.big,0.25+0.75*smooth(w*2.5));
+        drawBeaker(ctx,q.x,yF,bw,BH,beakA);
+        if(tt<8.8)drawWhisk(ctx,q.x+bw/2,Math.min(yF-6,yTop+(yF-yTop)*0.75),BH*0.62,bw*0.62,tt*13+(q.lab==='yema'?1:0));
+        ctx.globalAlpha=beakA;ctx.font=`500 ${Math.max(9,10*scale)}px ${MONO}`;ctx.fillStyle=rgb(TK.muted);ctx.textAlign='center';ctx.fillText(q.lab,q.x+bw/2,yF-BH+16);
+      }
+      ctx.globalAlpha=1;
+    } else {
+      const bw=W*0.50, x=W*0.09+(W*0.70-bw)/2;
+      let air, liqFrac, extra=0, foamCol, liqCol=F.liq, popQ, vis;
+      if(tt<9){const w=tt/9;air=airWhip(id,m.p,w);liqFrac=1-0.75*smooth(w/0.8);foamCol=mix(F.foam0,F.foam1,smooth(w*1.3));vis=0.25+0.75*smooth(w*2.5)}
+      else{const q=clamp((tt-9)/5,0,1);air=airFold(m,q);liqFrac=0.25;extra=LIQ_FLOUR*smooth(q/0.6)+m.p.b*BUT_V*smooth((q-0.55)/0.3);
+        foamCol=mix(id==='AF'?F.foam1:(id==='SEP'?mix(F.foam1,F.yfoam1,0.55):F.foam1),FLOUR,0.18*smooth(q/0.6));
+        if(id==='SEP')liqCol=mix(F.liq,F.yliq,0.5);
+        vis=1;popQ=1-(airFold(m,q)/m.air0)}
+      const w2=tt<9?tt/9:1, liqH=liqFrac*Al/bw, totH=(1+air+extra)*Al/bw;
+      let fatH=0;
+      if(id==='MANT'&&tt>=9){const q=clamp((tt-9)/5,0,1);fatH=(m.band*1.6)*smooth((q-0.7)/0.3)*Al/bw*3}
+      const yLiq=yF-liqH, yTop=yF-totH;
+      ctx.save();ctx.globalAlpha=beakA;
+      ctx.fillStyle=rgb(liqCol);ctx.fillRect(x,yLiq,bw,liqH);
+      if(fatH>0){ctx.fillStyle=rgb(FAT,0.85);ctx.fillRect(x,yF-fatH,bw,fatH)}
+      foamFill(ctx,x,yTop,bw,yLiq,foamCol);
+      drawFoamBubbles(ctx,B.beak,x,yTop,bw,yLiq,scale*(1.55-0.85*w2)*(id==='AF'?1:1.12),vis,popQ);
+      if(tt>=9&&tt<14){
+        const q=(tt-9)/5;
+        ctx.fillStyle=rgb(FLOUR);ctx.strokeStyle=rgb(hex('#A08A62'),0.6);ctx.lineWidth=0.6;
+        for(const f of B.flour){const st=0.04+f.ord*0.42, k=(q-st)/0.16;if(k<0||k>1)continue;
+          ctx.globalAlpha=beakA*(1-smooth((k-0.7)/0.3));ctx.beginPath();ctx.arc(x+f.x*bw,lerp(yTop-H*0.28,yTop+18*scale,k),1.6*scale+0.5,0,6.283);ctx.fill();ctx.stroke()}
+        if(id==='MANT'&&m.p.b>0){ctx.fillStyle=rgb(FAT);const nf=Math.round(B.fat.length*m.p.b/40);
+          for(let i=0;i<nf;i++){const f=B.fat[i], st=0.56+f.ord*0.22, k=(q-st)/0.22;if(k<0||k>1)continue;
+            ctx.globalAlpha=beakA*(1-smooth((k-0.85)/0.15));ctx.beginPath();ctx.ellipse(x+f.x*bw,lerp(yTop-H*0.22,yF-fatH-2,k*k),3*scale+0.6,2.4*scale+0.5,0,0,6.283);ctx.fill()}}
+        ctx.globalAlpha=beakA;
+        if(q>0.1&&q<0.97)drawSpatula(ctx,x+bw*0.5,yTop-H*0.16,(yF-yTop)*0.9+H*0.16,Math.sin(tt*4.2)*0.55);
+      }
+      ctx.restore();
+      if(tt<8.8)drawWhisk(ctx,x+bw/2,Math.min(yF-6,yTop+(yF-yTop)*0.72),BH*0.62,bw*0.5,tt*13);
+      drawBeaker(ctx,x,yF,bw,BH,beakA);
+      if(tt>=9&&tt<12.5){ctx.globalAlpha=beakA*(1-smooth((tt-11.5)/1));ctx.font=`500 ${Math.max(9,10*scale)}px ${MONO}`;ctx.fillStyle=rgb(TK.muted);ctx.textAlign='center';
+        ctx.fillText(id==='MANT'&&tt>=11.6&&butter>0?'+ mantequilla':(id==='SEP'&&tt<10.6?'unión de espumas':'+ harina'),x+bw/2,yF-BH+16);ctx.globalAlpha=1}
+    }
+  }
+  /* ---- molde ---- */
+  if(thumb||tt>=14.4){
+    const moldA=thumb?1:smooth((tt-14.4)/0.8);
+    const mw=G0.mw, mx=G0.mx, wallH=G0.wallH, h0=Math.min(wallH*0.45,mw*0.5);
+    const fill=thumb?1:smooth((tt-15)/1.6);
+    const cool=clamp((tt-OVEN1)/(T_END-OVEN1),0,1);
+    const shrinkNow=m.shrink*smooth(cool/0.5);
+    const E=heightE(m,u)*(1-shrinkNow);
+    const dome=tt>=OVEN0?domeAmp(m,u):0;
+    const hBase=h0*E*fill;
+    const hx=xn=>hBase*(1+dome*(1-Math.pow(2*xn-1,2)));
+    // sombra y molde (fondo)
+    ctx.save();ctx.globalAlpha=moldA;
+    ctx.fillStyle='rgba(0,0,0,0.07)';ctx.beginPath();ctx.ellipse(mx+mw/2,yF+5,mw*0.56,4,0,0,6.2832);ctx.fill();
+    ctx.fillStyle=rgb(mix(TK.tint,TK.panel,0.5));ctx.fillRect(mx,yF-wallH,mw,wallH);
+    const path=new Path2D();path.moveTo(mx,yF);const NS=24;
+    for(let i=0;i<=NS;i++){const xn=i/NS;path.lineTo(mx+xn*mw,yF-hx(xn))}
+    path.lineTo(mx+mw,yF);path.closePath();
+    ctx.save();ctx.clip(path);
+    const inOven=thumb||tt>=OVEN0, gw=36, gh=30, topY=yF-wallH*1.05;
+    if(!inOven){ctx.fillStyle=rgb(F.batter);ctx.fillRect(mx,topY,mw,yF-topY)}
+    else{
+      if(!OFF){OFF=document.createElement('canvas');OFF.width=gw;OFF.height=gh}
+      const oc=OFF.getContext('2d'), img=oc.createImageData(gw,gh), hRel=hBase/mw;
+      for(let j=0;j<gh;j++)for(let i=0;i<gw;i++){
+        const xn=(i+0.5)/gw, yy=topY+(j+0.5)/gh*(yF-topY), zAbs=(yF-yy)/mw;
+        const S=(thumb||cool>0)?1:m.at(m.A.S,m.p.k*u*rloc(xn,zAbs,hRel));
+        const col=mix(F.batter,F.crumb,S), k=(j*gw+i)*4;
+        img.data[k]=col[0];img.data[k+1]=col[1];img.data[k+2]=col[2];img.data[k+3]=255;
+      }
+      oc.putImageData(img,0,0);ctx.imageSmoothingEnabled=true;ctx.drawImage(OFF,mx,topY,mw,yF-topY);
+    }
+    if(m.band>0){const bh=m.band*hBase;ctx.fillStyle=rgb(mix(F.crumb,FAT,0.55));ctx.fillRect(mx,yF-bh,mw,bh)}
+    const cut=thumb?1:smooth((cool-0.45)/0.3);
+    for(const b of B.mold){
+      const X=mx+b.x*mw, hh=hx(b.x);
+      let Y=yF-b.z*hh, r=b.r*mw, a=1;
+      if(inOven){
+        const uu=thumb?1:u;
+        if(uu>=b.uLoss){if(thumb||cool>0)continue;const d=(uu-b.uLoss)*18;Y-=d*hh*1.4;a=1-d/0.6;r*=1+0.6*d;if(a<=0)continue}
+        else{const pp=Math.min(m.p.k*uu*b.rl,m.pset), G=m.at(m.A.G,pp), L=m.at(m.A.L,pp);r*=Math.cbrt(G)*(1+(b.g-1)*clamp(L/Math.max(m.Lset,0.02),0,1))}
+      }
+      r=Math.max(0.8,r);
+      const S=inOven?((thumb||cool>0)?1:m.at(m.A.S,Math.min(m.p.k*u*b.rl,1.9))):0;
+      if(cut<1){ctx.globalAlpha=moldA*a*(1-cut);ctx.beginPath();ctx.arc(X,Y,r,0,6.2832);
+        ctx.fillStyle=`rgba(255,255,255,${0.62-0.3*S})`;ctx.fill();ctx.lineWidth=0.75;ctx.strokeStyle=rgb(mix(hex('#9A7A55'),hex('#7A5530'),S),0.55+0.25*S);ctx.stroke()}
+      if(cut>0){ctx.globalAlpha=moldA*cut;const rr=r*1.05;ctx.beginPath();
+        for(let k=0;k<7;k++){const ang=b.rot+k*0.8976, R=rr*b.jit[k], px=X+Math.cos(ang)*R, py=Y+Math.sin(ang)*R;k?ctx.lineTo(px,py):ctx.moveTo(px,py)}
+        ctx.closePath();ctx.fillStyle=rgb(mix(F.crumb,hex('#6B4E2C'),0.2));ctx.fill();ctx.lineWidth=0.9;ctx.strokeStyle=rgb(mix(F.crumb,hex('#5A3E1E'),0.38),0.75);ctx.stroke()}
+    }
+    ctx.globalAlpha=moldA;
+    if(inOven){const cr=thumb?1:smooth((u-0.55)/0.4);if(cr>0){ctx.lineWidth=1+2.6*cr*Math.max(0.7,scale);ctx.strokeStyle=rgb(mix(F.crumb,CRUST,0.35+0.6*cr));ctx.beginPath();for(let i=0;i<=NS;i++){const xn=i/NS;i?ctx.lineTo(mx+xn*mw,yF-hx(xn)):ctx.moveTo(mx,yF-hx(0))}ctx.stroke()}}
+    ctx.restore();
+    // vapor al abrirse las celdas
+    if(!thumb&&tt>=OVEN0){
+      const si=tt<OVEN1?smooth((centerS(m,u)-0.3)/0.4):1-smooth((tt-OVEN1)/3.5);
+      if(si>0.01){ctx.strokeStyle=rgb(TK.muted,0.4*si);ctx.lineWidth=1.4;ctx.lineCap='round';
+        const yTop=yF-hBase*(1+dome), ph=performance.now()/650;
+        [0.3,0.52,0.72].forEach((fx,k)=>{ctx.beginPath();for(let s=0;s<=14;s++){const yy=yTop-6-s*H*0.012, xx=mx+fx*mw+Math.sin(s*0.7+ph+k*2)*4*scale;s?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)}ctx.stroke()})}
+    }
+    // vertido
+    if(!thumb&&tt>=15&&tt<16.7){const k=(tt-15)/1.7;ctx.fillStyle=rgb(F.batter);ctx.globalAlpha=moldA*(1-smooth((k-0.8)/0.2));ctx.fillRect(mx+mw/2-3*scale,yF-wallH*1.1,6*scale,wallH*1.1-hBase)}
+    // paredes metálicas
+    ctx.globalAlpha=moldA;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.strokeStyle=rgb(METAL_D);ctx.lineWidth=3.2;ctx.beginPath();ctx.moveTo(mx-6,yF-wallH);ctx.lineTo(mx-1.6,yF-wallH);ctx.lineTo(mx-1.6,yF+1.6);ctx.lineTo(mx+mw+1.6,yF+1.6);ctx.lineTo(mx+mw+1.6,yF-wallH);ctx.lineTo(mx+mw+6,yF-wallH);ctx.stroke();
+    ctx.strokeStyle=rgb(hex('#D9D4D0'),0.8);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(mx-0.2,yF-wallH+3);ctx.lineTo(mx-0.2,yF);ctx.stroke();
+    // regla de alturas
+    if(!thumb&&tt>=15.5){
+      ctx.strokeStyle=rgb(TK.ink,0.55);ctx.fillStyle=rgb(TK.ink,0.7);ctx.lineWidth=1;ctx.font=`500 ${Math.max(8.5,9*scale)}px ${MONO}`;ctx.textAlign='right';
+      [[1,'h₀'],[1.5,'1,5'],[2,'2h₀']].forEach(([f,l])=>{const y=yF-h0*f;if(y<yF-wallH-2)return;ctx.beginPath();ctx.moveTo(mx-9,y);ctx.lineTo(mx-4,y);ctx.stroke();if(W>200)ctx.fillText(l,mx-11,y+3)});
+      ctx.setLineDash([3,3]);ctx.strokeStyle=rgb(TK.ink,tt<OVEN0+2?0.5:0.22);ctx.beginPath();ctx.moveTo(mx,yF-h0);ctx.lineTo(mx+mw,yF-h0);ctx.stroke();ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+  if(!thumb){const tx=W*0.89, yTop=yF-H*0.62;drawThermo(ctx,tx+W*0.05,yTop,yF-6,tempValue(id,tt),W)}
+}
+
+/* ---------- lupa: superficie de una burbuja, estilo simulación molecular ---------- */
+const LC={hyd:hex('#E39B3A'),phil:hex('#4F86C6'),sul:hex('#E2C12B'),head:hex('#8E63B8'),tail:hex('#A39B95'),starch:hex('#EAD7A6'),ring:hex('#BFA068'),fat:hex('#F1C14E'),water:hex('#6FA3D2'),gas:hex('#AEB8C2'),bond:hex('#857B76'),den:hex('#9B2F24'),ldl:hex('#E7B54A')};
+const WHITE=[255,255,255], BLACK=[0,0,0];
+function bead(ctx,x,y,r,col,a){if(a===undefined)a=1;const g=ctx.createRadialGradient(x-r*0.4,y-r*0.4,r*0.1,x,y,r);g.addColorStop(0,rgb(mix(col,WHITE,0.65),a));g.addColorStop(0.65,rgb(col,a));g.addColorStop(1,rgb(mix(col,BLACK,0.3),a));ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.fill()}
+function bond(ctx,x1,y1,x2,y2,w,col,a){ctx.strokeStyle=rgb(col,a===undefined?0.9:a);ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+const ORDER8={AF:[2,5,0,7,3,6,1,4],SEP:[1,6,3,0,7,4,2,5],GEN:[5,0,6,2,7,1,4,3],MANT:[3,7,0,5,1,6,2,4]};
+const LPTS={};
+function lupaPts(id){if(LPTS[id])return LPTS[id];const r=rng(31+id.charCodeAt(0)*7+id.length);const w=[],g=[];for(let i=0;i<54;i++)w.push([r(),r()]);for(let i=0;i<6;i++)g.push([r(),r(),r()*6.28]);return LPTS[id]={w,g}}
+function protFrac(id){const q=clamp((t-9)/5,0,1);
+  if(id==='AF')return 1;if(id==='SEP')return t<9?1:lerp(1,0.62,smooth(q/0.25));if(id==='GEN')return 0.55;
+  return t<9?0.55:lerp(0.55,Math.max(0.2,0.55-0.012*butter),smooth((q-0.55)/0.3))}
+function drawLupa(c){
+  const id=c.id, m=M[id];
+  const {ctx,W,H}=fit(UI[id].lupa); const R=Math.min(W,H)/2-1.5, cx=W/2, cy=H/2;
+  ctx.globalAlpha=1;ctx.setLineDash([]);ctx.lineCap='round';ctx.clearRect(0,0,W,H);
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,R,0,6.2832);ctx.clip();
+  const u=ovenU(t), inOven=t>=OVEN0, cool=t>=OVEN1;
+  const pc=inOven?Math.min(m.p.k*u*R_CENTER,m.pset):0, Gc=inOven?m.at(m.A.G,pc):1, Sc=inOven?(cool?1:m.at(m.A.S,m.p.k*u*R_CENTER)):0;
+  const ex=clamp((Gc-1)/1.2,0,1), net=smooth((Sc-0.25)/0.6);
+  const yolky=!(id==='AF'||(id==='SEP'&&t<9));
+  const yI=cy-R*0.12, sag=R*0.12, curve=x=>yI+(1-Math.pow((x-cx)/R,2))*sag;
+  // fondo: aire (interior de la burbuja) y fase acuosa
+  let g=ctx.createLinearGradient(0,cy-R,0,yI+sag);g.addColorStop(0,'#F8FAFC');g.addColorStop(1,'#EEF2F6');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const wc=yolky?hex('#EFE7CF'):hex('#DCE9F4');
+  g=ctx.createLinearGradient(0,yI,0,cy+R);g.addColorStop(0,rgb(mix(wc,WHITE,0.25)));g.addColorStop(1,rgb(wc));ctx.fillStyle=g;
+  ctx.beginPath();ctx.moveTo(cx-R,curve(cx-R));for(let x=cx-R;x<=cx+R;x+=2)ctx.lineTo(x,curve(x));ctx.lineTo(cx+R,cy+R);ctx.lineTo(cx-R,cy+R);ctx.closePath();ctx.fill();
+  const P=lupaPts(id), tm=performance.now()/1000;
+  const br=Math.max(1.5,R*0.05);
+  // gas: moléculas diatómicas
+  P.g.forEach(([a,b,ang],i)=>{const x=cx+(a-0.5)*R*1.5+Math.sin(tm*0.7+i)*R*0.03, y=cy-R*0.6+b*R*0.3, d=br*0.75, an=ang+tm*0.4;
+    bead(ctx,x-Math.cos(an)*d,y-Math.sin(an)*d,br*0.85,LC.gas);bead(ctx,x+Math.cos(an)*d,y+Math.sin(an)*d,br*0.85,LC.gas)});
+  // agua
+  P.w.forEach(([a,b],i)=>{const x=cx+(a-0.5)*R*1.95, y0=curve(x)+R*0.16, y=y0+b*(cy+R-y0);if(Math.hypot(x-cx,y-cy)>R-1)return;
+    ctx.fillStyle=rgb(LC.water,0.45);ctx.beginPath();ctx.arc(x+Math.sin(tm*1.2+i)*0.6,y,Math.max(1,R*0.022),0,6.2832);ctx.fill()});
+  // gránulos de almidón: anillos de crecimiento que desaparecen al gelatinizar
+  const gran=[];
+  if(t>=9.3){const sw=1+0.75*Sc;
+    [[-0.5,0.66],[0.08,0.74],[0.56,0.6]].forEach((q,i)=>{const gx=cx+q[0]*R, gy=cy+q[1]*R, rx=R*0.15*sw, ry=R*0.105*sw;gran.push([gx,gy,rx,ry]);
+      const gg=ctx.createRadialGradient(gx-rx*0.3,gy-ry*0.35,1,gx,gy,rx);gg.addColorStop(0,rgb(mix(LC.starch,WHITE,0.5)));gg.addColorStop(1,rgb(mix(LC.starch,BLACK,0.12)));
+      ctx.fillStyle=gg;ctx.beginPath();ctx.ellipse(gx,gy,rx,ry,i*0.5-0.4,0,6.2832);ctx.fill();
+      const ra=1-smooth(Sc*1.4);if(ra>0.02){ctx.strokeStyle=rgb(LC.ring,0.7*ra);ctx.lineWidth=0.7;for(let k=1;k<=3;k++){ctx.beginPath();ctx.ellipse(gx,gy,rx*k/4,ry*k/4,i*0.5-0.4,0,6.2832);ctx.stroke()}}
+    })}
+  // partícula LDL de la yema (núcleo lipídico con cubierta de fosfolípidos)
+  if(yolky&&t<OVEN0+2){const a=t<OVEN0?1:1-smooth((t-OVEN0)/2), lx=cx-R*0.12, ly=cy+R*0.38, lr=R*0.12;
+    bead(ctx,lx,ly,lr,LC.ldl,a);for(let k=0;k<12;k++){const an=k/12*6.2832;bead(ctx,lx+Math.cos(an)*lr,ly+Math.sin(an)*lr,br*0.55,LC.head,a)}}
+  // gotas de grasa añadida
+  if(id==='MANT'&&butter>0&&t>=11.8){const nd=Math.min(4,1+Math.round(butter/12));for(let i=0;i<nd;i++){const fx=cx+(-0.42+i*0.3)*R, fy=yI+sag+R*(0.24+0.07*(i%2));bead(ctx,fx,fy,R*0.085,LC.fat);ctx.fillStyle='rgba(255,255,255,.7)';ctx.beginPath();ctx.arc(fx-R*0.03,fy-R*0.03,R*0.022,0,6.2832);ctx.fill()}}
+  // película en la interfase
+  const n=8, pf=protFrac(id), ord=ORDER8[id], w=t<9?t/9:1;
+  const aP=smooth((w-0.08)/0.7), aL=smooth(w/0.22), spacing=(2*R*0.9/n)*(1+0.3*ex);
+  const tear=inOven&&m.p.e<0.85&&ex>0.5?smooth((ex-0.5)/0.25)*(1-m.p.e)*2.2:0, tearX=cx+spacing*0.5, tearW=tear*spacing*1.5;
+  const xs=[];for(let j=0;j<n;j++)xs.push(cx+(j-(n-1)/2)*spacing);
+  const types=xs.map((x,j)=>ord[j]<Math.round(pf*n)?'p':'l');
+  const shown=xs.map(x=>!(tearW>0&&Math.abs(x-tearX)<tearW/2+spacing*0.25));
+  const ads=j=>types[j]==='p'?((ord[j]/n)<aP||t>=9):(aL>(ord[j]/n)*0.9||t>=9);
+  const den=c2=>mix(c2,LC.den,0.55*net);
+  const chainPts=j=>{const x=xs[j], half=spacing*0.42, pts=[];for(let k=0;k<5;k++){const xx=x-half+2*half*k/4, yy=curve(xx)+(k%2?R*0.055:-R*0.035);pts.push([xx,yy,k%2])}return pts};
+  // red de coagulación (mortero) hacia los gránulos
+  if(net>0&&gran.length){ctx.lineWidth=Math.max(1,R*0.03);
+    for(let j=0;j<n;j++){if(types[j]!=='p'||!shown[j])continue;const pt=chainPts(j)[2], gr=gran.reduce((b,q)=>Math.hypot(q[0]-pt[0],q[1]-pt[1])<Math.hypot(b[0]-pt[0],b[1]-pt[1])?q:b);
+      bond(ctx,pt[0],pt[1],gr[0],gr[1]-gr[3]*0.8,Math.max(1,R*0.028),LC.den,0.55*net)}
+    for(let i=0;i<gran.length-1;i++){const a=gran[i],b=gran[i+1];bond(ctx,a[0]+a[2]*0.8,a[1],b[0]-b[2]*0.8,b[1],Math.max(1,R*0.028),LC.den,0.45*net)}}
+  for(let j=0;j<n;j++){
+    if(!shown[j])continue;const x=xs[j];
+    if(types[j]==='p'){
+      if(ads(j)){const pts=chainPts(j);for(let k=0;k<4;k++)bond(ctx,pts[k][0],pts[k][1],pts[k+1][0],pts[k+1][1],Math.max(1,R*0.025),LC.bond,0.9);
+        pts.forEach(q=>bead(ctx,q[0],q[1],br,den(q[2]?LC.phil:LC.hyd)))}
+      else{const bx=x, by=curve(x)+R*(0.3+0.08*(j%3));const off=[[0,0],[1,0.2],[0.4,0.9],[-0.6,0.7],[-0.9,-0.2],[-0.2,-0.8],[0.8,-0.7]];
+        off.forEach((o,k)=>{if(k)bond(ctx,bx+off[k-1][0]*br*1.3,by+off[k-1][1]*br*1.3,bx+o[0]*br*1.3,by+o[1]*br*1.3,Math.max(0.8,R*0.02),LC.bond,0.8)});
+        off.forEach((o,k)=>bead(ctx,bx+o[0]*br*1.3,by+o[1]*br*1.3,br*0.85,k%2?LC.phil:LC.hyd))}
+    } else {
+      const y=ads(j)?curve(x):curve(x)+R*0.32;
+      [-1,1].forEach(sd=>{let px=x+sd*br*0.45, py=y;for(let k=1;k<=3;k++){const nx=x+sd*(br*0.45+k*br*0.18), ny=y-k*br*1.05;bond(ctx,px,py,nx,ny,Math.max(0.8,R*0.018),LC.tail,0.9);bead(ctx,nx,ny,br*0.5,LC.tail);px=nx;py=ny}});
+      bead(ctx,x,y+br*0.2,br*1.05,LC.head);
+    }
+  }
+  // puentes S–S entre proteínas vecinas
+  for(let j=0;j<n-1;j++){if(types[j]==='p'&&types[j+1]==='p'&&shown[j]&&shown[j+1]&&ads(j)&&ads(j+1)&&(w>0.45||t>=9)){
+    const a=chainPts(j)[3], b=chainPts(j+1)[1];bond(ctx,a[0],a[1],b[0],b[1],Math.max(1.1,R*0.03),LC.sul,1);bead(ctx,(a[0]+b[0])/2-1.2,(a[1]+b[1])/2,br*0.55,LC.sul);bead(ctx,(a[0]+b[0])/2+1.2,(a[1]+b[1])/2,br*0.55,LC.sul)}}
+  ctx.restore();
+  // marco y rótulos
+  ctx.strokeStyle=rgb(TK.line);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,R,0,6.2832);ctx.stroke();
+  if(R>40){ctx.font=`500 8px ${MONO}`;ctx.textAlign='center';[['aire',cy-R*0.8],['agua',cy+R*0.86]].forEach(([l,y])=>{ctx.fillStyle='rgba(255,255,255,.85)';ctx.beginPath();ctx.roundRect?ctx.roundRect(cx-13,y-7,26,11,5):ctx.rect(cx-13,y-7,26,11);ctx.fill();ctx.fillStyle='rgba(80,74,70,.9)';ctx.fillText(l,cx,y+1)})}
+  const ph=phaseOf(t);let cap;
+  if(ph===0)cap={AF:'Las proteínas de la clara se despliegan y se enlazan: película fuerte, lenta de formar.',SEP:'Espuma de clara: película solo proteica. La yema forma otra espuma, sostenida por lípidos.',GEN:'Proteínas y lípidos compiten por la superficie: película mixta.',MANT:'Proteínas y lípidos compiten por la superficie: película mixta.'}[id];
+  else if(ph<=2)cap={AF:'La película proteica resiste el plegado.',SEP:'Al unir las espumas llegan lípidos de la yema: película mixta.',GEN:'Película mixta, menos estable que la de la clara.',MANT:butter>0?'La mantequilla añade lípidos: la película se debilita.':'Película mixta, menos estable que la de la clara.'}[id];
+  else if(ph===3)cap=id==='AF'?'La película se estira con la burbuja sin romperse.':'Película menos elástica: algunas burbujas se rompen al crecer.';
+  else cap='Almidón hinchado (ladrillos) y proteína coagulada (mortero).';
+  if(UI[id]._cap!==cap){UI[id].cap.textContent=cap;UI[id]._cap=cap}
+}
+
+/* ---------- etiquetas ---------- */
+function tempValue(id,tt){const m=M[id];
+  if(tt<9)return id==='AF'||id==='SEP'?20:42.5;
+  if(tt<OVEN0)return m.p.T0;
+  if(tt<OVEN1)return centerT(m,ovenU(tt));
+  const Te=centerT(m,1), c=clamp((tt-OVEN1)/(T_END-OVEN1),0,1);return Te-(Te-35)*smooth(c)}
+function tempText(id){if(t<9)return id==='AF'||id==='SEP'?'≈ 20 °C':'40–45 °C';if(t<OVEN0)return '≈ '+Math.round(M[id].p.T0)+' °C';return Math.round(tempValue(id,t))+' °C'}
+function stateText(id){const m=M[id], ph=phaseOf(t), u=ovenU(t);
+  if(ph===0)return id==='SEP'?'Dos espumas':(id==='AF'?'Montando la clara':'Batido en caliente');
+  if(ph===1)return id==='MANT'&&t>11.6&&butter>0?'Añadiendo grasa':'Plegando harina';
+  if(ph===2)return 'Batido '+fmt(m.rho,2)+' g/mL';
+  if(ph===3)return 'Expandiendo';
+  if(ph===4)return centerS(m,u)>=0.9?'Fijado':'Fijando';
+  return t>T_END-3?'Corte':'Enfriando'}
+
+/* ---------- línea de tiempo ---------- */
+const segs=document.getElementById('segs');
+PH.forEach((p,i)=>{const d=document.createElement('div');d.className='sg';d.style.setProperty('--d',p.t1-p.t0);
+  d.innerHTML=`<div class="bar"><i></i></div><div class="nm"><span class="num">${i+1}</span><span class="txt">${p.n}</span><span class="sh">${p.s}</span></div>`;segs.appendChild(d)});
+const segEls=[...segs.children], tl=document.getElementById('timeline');
+function tFromX(clientX){for(let i=0;i<segEls.length;i++){const r=segEls[i].querySelector('.bar').getBoundingClientRect();
+  if(clientX<=r.right+1.5||i===segEls.length-1){const k=clamp((clientX-r.left)/r.width,0,1);return PH[i].t0+k*(PH[i].t1-PH[i].t0)}}return 0}
+let dragging=false;
+tl.addEventListener('pointerdown',e=>{dragging=true;try{tl.setPointerCapture(e.pointerId)}catch(_){};t=tFromX(e.clientX);dirty=true});
+tl.addEventListener('pointermove',e=>{if(dragging){t=tFromX(e.clientX);dirty=true}});
+tl.addEventListener('pointerup',()=>{dragging=false});
+tl.addEventListener('keydown',e=>{
+  const k=e.key;if(k==='ArrowRight'){t=Math.min(T_END,t+1)}else if(k==='ArrowLeft'){t=Math.max(0,t-1)}else if(k==='Home'){t=0}else if(k==='End'){t=T_END}else if(k===' '){togglePlay()}else return;
+  dirty=true;e.preventDefault()});
+
+/* ---------- controles ---------- */
+const playTxt=document.getElementById('playTxt'), playIcon=document.getElementById('playIcon');
+function syncPlay(){playTxt.textContent=playing?'Pausa':(t>=T_END?'Repetir':(t>0?'Continuar':'Reproducir'));playIcon.setAttribute('d',playing?'M3.5 2.5h3.2v11H3.5zM9.3 2.5h3.2v11H9.3z':'M4 2.5v11l9-5.5z')}
+function togglePlay(){if(!playing&&t>=T_END)t=0;playing=!playing;last=null;syncPlay();dirty=true}
+document.getElementById('play').addEventListener('click',togglePlay);
+document.getElementById('restart').addEventListener('click',()=>{t=0;playing=true;last=null;syncPlay();dirty=true});
+document.getElementById('autoP').addEventListener('change',e=>{autoPause=e.target.checked});
+document.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(x=>x.setAttribute('aria-pressed',x===b))}));
+document.querySelectorAll('[data-lvl]').forEach(b=>b.addEventListener('click',()=>{level=b.dataset.lvl;document.querySelectorAll('[data-lvl]').forEach(x=>x.setAttribute('aria-pressed',x===b));document.body.classList.toggle('lvl-prof',level==='prof');renderNarr(true)}));
+const bIn=document.getElementById('butter'), bOut=document.getElementById('butterOut');
+bIn.addEventListener('input',()=>{butter=+bIn.value;bOut.textContent=butter+' g';rebuild('MANT');setMantRecipe();renderTable();renderPTable();renderExpect();renderData();dirty=true;dirtyX=true});
+
+/* ---------- lectura de cada fase ---------- */
+const KLAB=CONTENT.labels;
+const narrEl=document.getElementById('narr');
+let narrKey='';
+function renderNarr(force){
+  const k=PH[phaseOf(t)].k; if(k===narrKey&&!force)return; narrKey=k;
+  const n=CONTENT.narr[k];
+  const chain=n.chain.map((s,i)=>`<span class="${i===1||i===2?'k':''}">${s}</span>`).join('<i>→</i>');
+  const bd=n.badges.map(b=>`<div class="bdg"><em class="${KLAB[b[0]][1]}">${KLAB[b[0]][0]}</em><span>${b[1]}${b[2]?` <span class="ct">· ${b[2]}</span>`:''}</span></div>`).join('');
+  narrEl.innerHTML=`<div class="ph-head"><h2>${n.title}</h2><span class="when">${n.when}</span></div>
+   <div class="narr">${n.est.map(p=>`<p>${p}</p>`).join('')}
+   <div class="chain" aria-label="Cadena causal">${chain}</div>
+   <p class="cocina">${n.cocina}</p>
+   <div class="badges">${bd}</div>
+   ${n.prof&&n.prof.length?`<div class="prof"><b class="t">Profundidad · nivel profesor</b>${n.prof.map(p=>`<p>${p}</p>`).join('')}</div>`:''}</div>`;
+}
+
+/* ---------- gráfica de fase ---------- */
+const svg=document.getElementById('chart'), chT=document.getElementById('chTitle'), chS=document.getElementById('chSub');
+const NSV='http://www.w3.org/2000/svg';
+const CW=600,CH=270,ML=46,MR=104,MT=14,MB=40;
+let chMode='';
+const el=(n,a)=>{const e=document.createElementNS(NSV,n);for(const k in a)e.setAttribute(k,a[k]);return e};
+const CR={};
+function buildChart(mode){
+  chMode=mode;svg.innerHTML='';const g=el('g',{});svg.appendChild(g);
+  const PW=CW-ML-MR, PHh=CH-MT-MB;let xd,yd,yt,xt;
+  if(mode==='foam'){xd=[0,14];yd=[1,5];yt=[1,2,3,4,5];xt=[[0,'0'],[4.5,'batido'],[9,'9'],[11.5,'plegado'],[14,'14']];
+    chT.textContent='Volumen de espuma durante el batido y el plegado';chS.textContent='Volumen respecto al del líquido sin batir · tiempo de la simulación (s)'}
+  else{xd=[0,1.34];yd=[0.9,1.95];yt=[1,1.2,1.4,1.6,1.8];xt=[[0,'entra al horno'],[0.5,'50 %'],[1,'sale'],[1.17,'enfriado']];
+    chT.textContent='Altura de la pieza en el horno';chS.textContent='Altura respecto a la inicial (h/h₀) · el punto marca cuándo fija el centro'}
+  const X=v=>ML+(v-xd[0])/(xd[1]-xd[0])*PW, Y=v=>MT+PHh-(v-yd[0])/(yd[1]-yd[0])*PHh;CR.X=X;CR.Y=Y;
+  g.appendChild(el('rect',mode==='foam'?{x:X(9),y:MT,width:X(14)-X(9),height:PHh,fill:'var(--tint)'}:{x:X(1),y:MT,width:X(1.34)-X(1),height:PHh,fill:'var(--tint)'}));
+  yt.forEach(v=>{g.appendChild(el('line',{x1:ML,x2:ML+PW,y1:Y(v),y2:Y(v),stroke:'var(--line)','stroke-width':1}));const tx=el('text',{x:ML-8,y:Y(v)+4,'text-anchor':'end','font-size':11,fill:'var(--muted)','font-family':MONO});tx.textContent=fmt(v,v%1?1:0);g.appendChild(tx)});
+  xt.forEach(([v,l])=>{const tx=el('text',{x:X(v),y:MT+PHh+18,'text-anchor':v===0?'start':'middle','font-size':11,fill:'var(--muted)','font-family':MONO});tx.textContent=l;g.appendChild(tx)});
+  g.appendChild(el('line',{x1:ML,x2:ML+PW,y1:MT+PHh,y2:MT+PHh,stroke:'var(--muted)','stroke-width':1}));
+  const yl=el('text',{x:14,y:MT+PHh/2,'text-anchor':'middle','font-size':11,fill:'var(--muted)',transform:`rotate(-90 14 ${MT+PHh/2})`});yl.textContent=mode==='foam'?'V / V₀':'h / h₀';g.appendChild(yl);
+  CR.lines={};CR.labels={};CR.dots={};
+  COND.forEach(c=>{const p=el('path',{fill:'none',stroke:`var(${c.cvar})`,'stroke-width':2.3,'stroke-dasharray':c.dash,'stroke-linecap':'round','stroke-linejoin':'round'});g.appendChild(p);CR.lines[c.id]=p;
+    if(mode==='oven'){const d=el('circle',{r:4,fill:'var(--panel)',stroke:`var(${c.cvar})`,'stroke-width':2,opacity:0});g.appendChild(d);CR.dots[c.id]=d}
+    const lb=el('text',{'font-size':11.5,fill:`var(${c.cvar})`,'font-weight':600});g.appendChild(lb);CR.labels[c.id]=lb});
+  CR.cursor=el('line',{y1:MT,y2:MT+PHh,stroke:'var(--accent)','stroke-width':1,'stroke-dasharray':'2 3',opacity:0.7});g.appendChild(CR.cursor);
+  svg.setAttribute('aria-label',mode==='foam'?'Volumen de espuma de los cuatro batidos durante el batido y el plegado':'Altura relativa de las cuatro piezas durante el horneado y el enfriado');
+}
+document.getElementById('legend').innerHTML=COND.map(c=>`<span><svg viewBox="0 0 26 8" aria-hidden="true"><line x1="1" y1="4" x2="25" y2="4" stroke="var(${c.cvar})" stroke-width="2.4" stroke-dasharray="${c.dash}"/></svg>${c.name}</span>`).join('');
+function foamV(id,tt){const m=M[id];if(tt<=9)return 1+airWhip(id,m.p,tt/9);const q=clamp((tt-9)/5,0,1);return 1+airFold(m,q)+LIQ_FLOUR*smooth(q/0.6)+m.p.b*BUT_V*smooth((q-0.55)/0.3)}
+function ovenH(id,x){const m=M[id];if(x<=1)return heightE(m,x)*(1+domeAmp(m,x)*0.6);const c=clamp((x-1)/0.34*2,0,1);return heightE(m,1)*(1+domeAmp(m,1)*0.6)*(1-m.shrink*smooth(c))}
+const ovenX=()=>t<OVEN0?0:(t<=OVEN1?ovenU(t):1+0.34*clamp((t-OVEN1)/(T_END-OVEN1),0,1));
+function updateChart(){
+  const mode=t<14?'foam':'oven';if(mode!==chMode)buildChart(mode);
+  const {X,Y}=CR, ends=[];
+  COND.forEach(c=>{let d='',xe,ye;
+    if(mode==='foam'){const tm=Math.min(t,14), N=Math.max(2,Math.round(tm*10));for(let i=0;i<=N;i++){const tt=tm*i/N;d+=(i?'L':'M')+X(tt).toFixed(1)+' '+Y(foamV(c.id,tt)).toFixed(1)}xe=tm;ye=foamV(c.id,tm)}
+    else{const xm=ovenX(), N=Math.max(2,Math.round(xm*120));for(let i=0;i<=N;i++){const x=xm*i/N;d+=(i?'L':'M')+X(x).toFixed(1)+' '+Y(ovenH(c.id,x)).toFixed(1)}xe=xm;ye=ovenH(c.id,xm);
+      const us=M[c.id].uSetC, dot=CR.dots[c.id];if(xm>=us){dot.setAttribute('cx',X(us));dot.setAttribute('cy',Y(ovenH(c.id,us)));dot.setAttribute('opacity',1)}else dot.setAttribute('opacity',0)}
+    CR.lines[c.id].setAttribute('d',d);ends.push({id:c.id,x:X(xe),y:Y(ye),txt:c.short})});
+  ends.sort((a,b)=>a.y-b.y);for(let i=1;i<ends.length;i++)if(ends[i].y-ends[i-1].y<13)ends[i].y=ends[i-1].y+13;
+  const lim=MT+(CH-MT-MB)-6;if(ends.length&&ends[ends.length-1].y>lim){ends[ends.length-1].y=lim;for(let i=ends.length-2;i>=0;i--)if(ends[i+1].y-ends[i].y<13)ends[i].y=ends[i+1].y-13}
+  ends.forEach(e=>{const lb=CR.labels[e.id];lb.setAttribute('x',e.x+7);lb.setAttribute('y',e.y+4);lb.textContent=e.txt});
+  const cx=mode==='foam'?X(Math.min(t,14)):X(ovenX());CR.cursor.setAttribute('x1',cx);CR.cursor.setAttribute('x2',cx);
+}
+
+/* ---------- tabla de resultados ---------- */
+const tbl=document.getElementById('tbl'), ptbl=document.getElementById('ptbl');
+const TERN={AF:1,SEP:2,GEN:2,MANT:3};
+const ROWS=[
+  {lab:'Aumento de volumen al batir',unit:'% sobre el líquido sin batir',ph:0,v:m=>m.air0*100,d:0},
+  {lab:'Aire perdido en el plegado',unit:'% del aire batido',ph:1,v:m=>(1-(1-m.p.lf)*(1-m.p.lb))*100,d:0},
+  {lab:'Densidad del batido',unit:'g/mL · a igual volumen, indica la masa en el molde',ph:1,v:m=>m.rho,d:2},
+  {lab:'Expansión en el horno',unit:'% de altura ganada hasta fijar',ph:4,v:m=>(m.Eset-1)*100,d:0},
+  {lab:'Altura final',unit:'h/h₀, tras enfriar',ph:5,v:m=>m.Efin,d:2},
+  {lab:'Volumen específico',unit:'cm³/g',ph:5,v:m=>m.Efin/m.rho,d:2},
+  {lab:'Aire en la miga',unit:'% del volumen de la miga',ph:5,v:m=>m.phiFin*100,d:0},
+  {lab:'Miga',unit:'tamaño y uniformidad de las celdas',ph:5,tx:id=>({AF:'Celdas finas y uniformes',SEP:'Finas y uniformes',GEN:'Algo mayores y menos uniformes',MANT:butter>0?'Más cerrada; algunas celdas grandes por unión de burbujas':'Algo mayores y menos uniformes'})[id]},
+  {lab:'Ternura y humedad',unit:'orientativo',ph:5,tx:id=>({AF:'Referencia: sin grasa',SEP:'Mayor: lípidos de la yema',GEN:'Mayor: lípidos de la yema',MANT:butter>0?'La mayor: grasa añadida':'Mayor: lípidos de la yema'})[id]},
+  {lab:'Defecto a vigilar',unit:'causa principal',ph:5,tx:id=>({AF:'Plegado excesivo: pérdida de aire',SEP:'Unión brusca de espumas: películas mixtas',GEN:'Espuma menos estable desde el inicio',MANT:butter>0?'Capa densa en la base si la grasa se hunde':'Espuma menos estable desde el inicio'})[id]},
+];
+let tblPh=-1;
+function renderTable(){
+  const phDone=t>=T_END?6:phaseOf(t);tblPh=phDone;
+  let h='<thead><tr><th scope="col">Variable</th>'+COND.map(c=>`<th scope="col" style="--c:var(${c.cvar})"><span class="sw"></span>${c.short}${c.h2?' <span class="h2tag" style="margin-left:4px">H2</span>':''}</th>`).join('')+'</tr></thead><tbody>';
+  for(const r of ROWS){h+=`<tr><th scope="row">${r.lab}<small>${r.unit}</small></th>`;
+    if(phDone<=r.ph)h+=COND.map(()=>`<td class="na">tras «${PH[r.ph].s.toLowerCase()}»</td>`).join('');
+    else if(r.tx)h+=COND.map(c=>`<td class="tx">${r.tx(c.id)}</td>`).join('');
+    else{const vals=COND.map(c=>r.v(M[c.id])), mx=Math.max(...vals.map(Math.abs))||1;
+      h+=COND.map((c,i)=>`<td style="--c:var(${c.cvar})"><span class="v"><b>${fmt(vals[i],r.d)}</b><i style="width:${(48*Math.abs(vals[i])/mx).toFixed(1)}px"></i></span></td>`).join('')}
+    h+='</tr>'}
+  tbl.innerHTML=h+'</tbody>';
+}
+function renderPTable(){
+  if(!ptbl)return;
+  const rows=[['Estabilidad de la película (s)',m=>fmt(m.p.s,2)],['Elasticidad de la película (e)',m=>fmt(m.p.e,2)],['Pérdida de aire al plegar',m=>fmt((1-(1-m.p.lf)*(1-m.p.lb))*100,0)+' %'],['Fracción de aire del batido',m=>fmt(m.phi*100,0)+' %'],['Velocidad relativa de calentamiento (k)',m=>fmt(m.p.k,2)],['Temperatura del batido al entrar al horno',m=>Math.round(m.p.T0)+' °C'],['Gas perdido en el horno antes de fijar',m=>fmt(m.Lset*100,0)+' %'],['Fija el centro a',m=>fmt(m.uSetC*100,0)+' % del tiempo de horno']];
+  ptbl.innerHTML='<thead><tr><th scope="col">Parámetro</th>'+COND.map(c=>`<th scope="col" style="--c:var(${c.cvar})"><span class="sw"></span>${c.short}</th>`).join('')+'</tr></thead><tbody>'+rows.map(r=>`<tr><th scope="row">${r[0]}</th>`+COND.map(c=>`<td class="mono" style="font-size:12.5px">${r[1](M[c.id])}</td>`).join('')+'</tr>').join('')+'</tbody>';
+}
+renderPTable();
+
+/* ---------- lo esperado por caso ---------- */
+const expEl=document.getElementById('expect');const XT={};
+COND.forEach(c=>{const x=CONTENT.expect[c.id];const a=document.createElement('article');a.className='xc';a.style.setProperty('--c',`var(${c.cvar})`);
+  a.innerHTML=`<h3><span class="sw"></span>${c.name}</h3><canvas class="thumb" aria-label="Corte final esperado: ${c.name}" role="img"></canvas>
+  <div class="prof-bars"></div>
+  <p><span class="lb">Qué cambia</span>${x.cambia}</p>
+  <p><span class="lb">Mecanismo</span>${x.mecanismo}</p>
+  <div><span class="lb">Qué se espera</span><ul>${x.espera.map(e=>`<li>${e}</li>`).join('')}</ul></div>
+  <p class="dist"><span class="lb">En el Obrador · si sale distinto</span>${x.cocina} ${x.distinto}</p>`;
+  expEl.appendChild(a);XT[c.id]={cv:a.querySelector('canvas'),bars:a.querySelector('.prof-bars')}});
+const ternLevel=id=>id==='AF'?1:(id==='MANT'&&butter>0?3:2);
+function renderExpect(){
+  const V=COND.map(c=>{const m=M[c.id];return{id:c.id,rho:m.rho,ve:m.Efin/m.rho,tern:ternLevel(c.id)}});
+  const mr=Math.max(...V.map(v=>v.rho)), mv=Math.max(...V.map(v=>v.ve));
+  V.forEach(v=>{XT[v.id].bars.innerHTML=[['Densidad del batido',v.rho/mr,fmt(v.rho,2)+' g/mL'],['Volumen específico',v.ve/mv,fmt(v.ve,1)+' cm³/g'],['Ternura',v.tern/3,'+'.repeat(v.tern)]]
+    .map(r=>`<div class="pb"><span>${r[0]}</span><span class="tr"><i style="width:${(clamp(r[1],0,1)*100).toFixed(0)}%"></i></span><span class="n">${r[2]}</span></div>`).join('')});
+}
+function drawThumbs(){COND.forEach(c=>{const {ctx,W,H}=fit(XT[c.id].cv);drawScene(ctx,W,H,c.id,T_END,true)})}
+renderExpect();
+
+/* ---------- datos medidos de PR-3 ---------- */
+const PIECES=['AF','SEP','GEN','MANT'], LSKEY='pr3-datos-v2';
+const NAMES={AF:'solo claras',SEP:'espumas separadas',GEN:'genovesa',MANT:'genovesa con mantequilla'};
+const SHORT={AF:'Claras',SEP:'Separadas',GEN:'Genovesa',MANT:'Mantequilla'};
+const FIELDS=[['rho','Densidad del batido','g/mL'],['ve','Volumen específico','cm³/g'],['aa0','AA · R1','%'],['aa1','AA · R2','%'],['aa2','AA · R3','%'],['m0','Masa en el molde','g'],['m1','Masa en caliente','g'],['tern','Ternura','1 a 5'],['sube','Subida a mitad de horno','orden 1 a 4']];
+const D={};PIECES.forEach(p=>{D[p]={};FIELDS.forEach(f=>D[p][f[0]]='')});
+let isExample=false;
+try{const s=JSON.parse(localStorage.getItem(LSKEY)||'null');if(s&&s.D){PIECES.forEach(p=>{if(s.D[p])Object.assign(D[p],s.D[p])});isExample=!!s.ex}}catch(_){}
+const din=document.getElementById('din');
+din.innerHTML=`<thead><tr><th scope="col" rowspan="2">Pieza</th><th scope="colgroup" colspan="5">Aire retenido</th><th scope="colgroup" colspan="2">Peso</th><th scope="colgroup" colspan="2">Observación</th><th scope="col" rowspan="2">Calculado</th></tr><tr>${FIELDS.map(f=>`<th scope="col">${f[1]}<small>${f[2]}</small></th>`).join('')}</tr></thead><tbody>`+
+  PIECES.map(p=>`<tr style="--c:var(${CID[p].cvar})"><th scope="row"><span class="sw" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>${p==='GEN'?'Genovesa':CID[p].name}</th>${FIELDS.map(f=>`<td data-l="${f[1]} (${f[2]})"><input id="d-${p}-${f[0]}" inputmode="${f[0]==='tern'||f[0]==='sube'?'numeric':'decimal'}" autocomplete="off" aria-label="${f[1]}, ${NAMES[p]}"></td>`).join('')}<td class="mean" data-l="Calculado" id="d-${p}-calc">—</td></tr>`).join('')+'</tbody>';
+const num=s=>{if(s===undefined||s===null)return NaN;const v=parseFloat(String(s).trim().replace(',','.'));return isFinite(v)?v:NaN};
+const LIM={rho:[0.05,1.6],ve:[0.3,15],aa0:[0,100],aa1:[0,100],aa2:[0,100],m0:[1,5000],m1:[1,5000],tern:[1,5],sube:[1,4]};
+function fillInputs(){PIECES.forEach(p=>FIELDS.forEach(f=>{document.getElementById(`d-${p}-${f[0]}`).value=D[p][f[0]]}))}
+fillInputs();
+function save(){try{localStorage.setItem(LSKEY,JSON.stringify({D,ex:isExample}))}catch(_){}}
+din.addEventListener('input',e=>{const m=e.target.id.match(/^d-(AF|SEP|GEN|MANT)-(\w+)$/);if(!m)return;D[m[1]][m[2]]=e.target.value;isExample=false;save();renderData()});
+document.getElementById('dEx').addEventListener('click',()=>{
+  const ex={AF:['0,36','3,1','42','45','40','300','262','2','3'],SEP:['0,45','4,0','50','52','49','300','274','4','1'],GEN:['0,48','3,6','47','45','48','300','273','3','2'],MANT:['0,56','2,9','41','43','40','300','276','4','4']};
+  PIECES.forEach(p=>FIELDS.forEach((f,i)=>D[p][f[0]]=ex[p][i]));isExample=true;fillInputs();save();renderData()});
+document.getElementById('dClr').addEventListener('click',()=>{PIECES.forEach(p=>FIELDS.forEach(f=>D[p][f[0]]=''));isExample=false;fillInputs();save();renderData()});
+const okv=(k,v)=>!isNaN(v)&&v>=LIM[k][0]&&v<=LIM[k][1];
+function meas(p,k){
+  if(k==='aa'){const a=[0,1,2].map(i=>num(D[p]['aa'+i])).filter(v=>okv('aa0',v));if(!a.length)return null;return{v:a.reduce((s,x)=>s+x,0)/a.length,min:Math.min(...a),max:Math.max(...a),n:a.length}}
+  if(k==='pc'){const m0=num(D[p].m0),m1=num(D[p].m1);if(!okv('m0',m0)||!okv('m1',m1)||m1>m0)return null;return{v:(m0-m1)/m0*100,n:1}}
+  const v=num(D[p][k]);return okv(k,v)?{v,n:1}:null;
+}
+const waterFrac=id=>id==='AF'?106/240:(id==='MANT'?(90+0.16*butter)/(240+butter):90/240);
+function expv(p,k){const m=M[p];
+  if(k==='rho')return m.rho;if(k==='ve')return m.Efin/m.rho;if(k==='aa')return m.phiFin*100;
+  if(k==='pc')return waterFrac(p)*100;if(k==='tern')return ternLevel(p);if(k==='sube')return ovenH(p,0.6);return 0}
+const DV=[
+  {k:'rho',lab:'Densidad del batido',unit:'g/mL',dec:2,grp:'batido',low:true,ord:'de menos a más densa (más aire primero)'},
+  {k:'ve',lab:'Volumen específico',unit:'cm³/g',dec:2,grp:'horno',ord:'de más a menos volumen'},
+  {k:'aa',lab:'Fracción de área alveolar',unit:'%',dec:1,grp:'horno',ord:'de más a menos área'},
+  {k:'pc',lab:'Pérdida por cocción',unit:'%',dec:1,grp:'agua',ord:'de más a menos pérdida'},
+  {k:'tern',lab:'Ternura',unit:'',dec:1,grp:'ternura',ordinal:true,ord:'de más a menos tierna'},
+  {k:'sube',lab:'Subida a mitad de horno',unit:'',dec:0,grp:'horno',rank:true,ord:'de más a menos subida'}];
+const DVK={};DV.forEach(v=>DVK[v.k]=v);
+function rankOf(list,f){const s=list.slice().sort((a,b)=>f(a)-f(b));const r={};s.forEach((p,i)=>{r[p]=(i&&Math.abs(f(p)-f(s[i-1]))<1e-9)?r[s[i-1]]:i+1});return r}
+function analyze(v){
+  const av=PIECES.filter(p=>meas(p,v.k)), exp={};PIECES.forEach(p=>exp[p]=expv(p,v.k));
+  if(v.rank){const ms={};av.forEach(p=>ms[p]=meas(p,v.k).v);return{av,exp,ms,expRank:rankOf(av,p=>-exp[p]),mRank:rankOf(av,p=>ms[p])}}
+  let k=1;if(av.length){const q=av.map(p=>meas(p,v.k).v/exp[p]).sort((a,b)=>a-b), h=q.length>>1;k=q.length%2?q[h]:(q[h-1]+q[h])/2}
+  const es={};PIECES.forEach(p=>es[p]=exp[p]*k);
+  const sgn=v.low?1:-1;
+  return{av,exp,es,expRank:rankOf(av,p=>sgn*es[p]),mRank:rankOf(av,p=>sgn*meas(p,v.k).v)};
+}
+/* comparaciones de las hipótesis */
+function compareM(A,B,k){const a=meas(A,k),b=meas(B,k);if(!a||!b)return null;
+  let overlap=false;if(a.n>1&&b.n>1)overlap=!(a.max<b.min||b.max<a.min);return{a:a.v,b:b.v,diff:(a.v-b.v)/b.v*100,overlap}}
+const wins=(k,a,b)=>DVK[k].low?a<b:a>b;
+const WHAT={rho:'batido menos denso',ve:'más volumen específico',aa:'más área alveolar',tern:'más tierna'};
+function vline(A,B,k,mode){
+  const v=DVK[k], c=compareM(A,B,k);
+  if(!c)return{html:`<div class="vr"><span>${v.lab}</span><span class="vd nc">sin datos</span></div>`,chip:'sd'};
+  const big=Math.abs(c.diff)>=5, w=wins(k,c.a,c.b)?A:B;let chip;
+  if(mode==='any')chip=big?['ok','hay diferencia']:['nc','sin diferencia'];
+  else{const ew=mode==='A'?A:B;chip=!big?['nc','no concluyente']:(w===ew?['ok','se cumple']:['no','no se cumple'])}
+  const u=v.unit?' '+v.unit:'';
+  const txt=`${NAMES[A]} ${fmt(c.a,v.dec)}${u} · ${NAMES[B]} ${fmt(c.b,v.dec)}${u} · diferencia del ${fmt(Math.abs(c.diff),0)} %`+(big?` · ${WHAT[k]}: ${NAMES[w]}`:'')+(c.overlap?' · las réplicas se solapan':'');
+  return{html:`<div class="vr"><span>${v.lab}</span><span class="vd ${chip[0]}">${chip[1]}</span><span class="vv">${txt}</span></div>`,chip:chip[0]};
+}
+const pct=x=>fmt(Math.abs(x),0);
+function simD(A,B,k){const a=expv(A,k),b=expv(B,k);return k==='rho'?(b-a)/b*100:(a-b)/b*100}
+function simSentence(id){
+  if(id==='H1'){const r=simD('AF','SEP','rho'),v=simD('AF','SEP','ve'),a=simD('AF','SEP','aa');
+    return `Según la simulación, el batido de solo claras es un ${pct(r)} % menos denso que el de espumas separadas y, tras fijar, conserva más aire: su volumen específico es un ${pct(v)} % mayor y su miga tiene un ${pct(a)} % más de aire.`}
+  if(id==='H2'){const L=[['rho','la densidad'],['ve','el volumen específico'],['aa','el aire en la miga']].map(([k,n])=>({k,n,d:simD('SEP','GEN',k)}));
+    const small=L.filter(x=>Math.abs(x.d)<5), big=L.filter(x=>Math.abs(x.d)>=5);
+    const bigTxt=big.map(x=>{const who=x.d>0?'espumas separadas':'genovesa';return x.k==='rho'?`el batido de ${who} es un ${pct(x.d)} % menos denso`:(x.k==='ve'?`el volumen específico es un ${pct(x.d)} % mayor con ${who}`:`la miga de ${who} tiene un ${pct(x.d)} % más de aire`)});
+    if(!big.length)return 'Según la simulación, los dos métodos dan valores casi iguales: las diferencias de densidad, volumen específico y aire en la miga no llegan al 5 %.';
+    const sm=small.map(x=>x.n);const smTxt=sm.length===1?sm[0]+' difiere':sm.slice(0,-1).join(', ')+' y '+sm[sm.length-1]+' difieren';
+    return `Según la simulación, los dos métodos dan valores próximos: ${small.length?smTxt+' menos de un 5 %, y ':''}${bigTxt.join(' y ')}.`}
+  if(butter===0)return 'Con 0 g de mantequilla la simulación no espera diferencias con la genovesa. Ajusta la barra a la cantidad usada en la práctica.';
+  const r=simD('GEN','MANT','rho'),v=simD('GEN','MANT','ve');
+  return `Según la simulación, con ${butter} g de mantequilla el batido es un ${pct(r)} % más denso que el de la genovesa y el volumen específico baja un ${pct(v)} %; a cambio, la miga gana ternura.`;
+}
+const HCFG=[
+  {id:'H1',A:'AF',B:'SEP',mode:'A',stages:[{lab:'1 · Al montar: capacidad espumante',sh:'al montar',vars:['rho']},{lab:'2 · Tras fijar: aire conservado en el horno',sh:'tras fijar',vars:['ve','aa']}]},
+  {id:'H2',A:'SEP',B:'GEN',mode:'any',stages:[{lab:'1 · Al montar',sh:'al montar',vars:['rho']},{lab:'2 · Tras fijar',sh:'tras fijar',vars:['ve','aa']}]},
+  {id:'G',A:'GEN',B:'MANT',mode:'A',modeV:{tern:'B'},stages:[{lab:'1 · Al montar',sh:'al montar',vars:['rho']},{lab:'2 · Tras fijar',sh:'tras fijar',vars:['ve','aa']},{lab:'3 · En boca',sh:'en boca',vars:['tern']}]},
+];
+function stageVerdict(chips,mode){const c=chips.filter(x=>x!=='sd');if(!c.length)return null;
+  if(mode==='any')return c.includes('ok')?'hay diferencia entre métodos':'sin diferencia apreciable';
+  const ok=c.filter(x=>x==='ok').length,no=c.filter(x=>x==='no').length;
+  if(ok&&!no)return 'se cumple';if(no&&!ok)return 'no se cumple';if(ok&&no)return 'resultado mixto';return 'no concluyente'}
+function renderHyp(){
+  document.getElementById('hyp').innerHTML=HCFG.map(h=>{const T=CONTENT.hyp[h.id];const parts=[];let body='';
+    h.stages.forEach(s=>{const rs=s.vars.map(k=>vline(h.A,h.B,k,(h.modeV&&h.modeV[k])||h.mode));body+=`<p class="stg">${s.lab}</p>`+rs.map(r=>r.html).join('');const vd=stageVerdict(rs.map(r=>r.chip),h.mode);if(vd)parts.push(`${s.sh}, ${vd}`)});
+    const sum=parts.length?`Con tus datos: ${parts.join('; ')}.`:`Introduce los datos de ${NAMES[h.A]} y ${NAMES[h.B]} para contrastar.`;
+    return `<article class="hc"><span class="cmp">${T.tag}</span><h3>${T.title}</h3><p class="stmt">${T.stmt}</p><p class="simx">${simSentence(h.id)}</p>${body}<p class="sum">${sum}</p></article>`}).join('');
+}
+/* gráficas de barras agrupadas: esperado (escalado) frente a medido */
+function niceTicks(max){const raw=max/4, p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p, st=(m<1.5?1:m<3?2:m<7?5:10)*p, out=[];for(let x=0;x<=max+1e-9;x+=st)out.push(x);return{out,st}}
+function barChart(v,a,flagged){
+  const W=320,H=190,ML=38,MR=6,MT=18,MB=26,PW=W-ML-MR,PH=H-MT-MB, has=a.av.length>0;
+  const ex={},me={};let unit;
+  if(has){PIECES.forEach(p=>{ex[p]=a.es[p];const mm=meas(p,v.k);me[p]=mm?mm.v:null});unit=v.unit||'escala 1 a 5'}
+  else{const mean=PIECES.reduce((s,p)=>s+a.exp[p],0)/4;PIECES.forEach(p=>{ex[p]=a.exp[p]/mean*100;me[p]=null});unit='índice, media de las piezas = 100'}
+  const top=Math.max(...PIECES.map(p=>Math.max(ex[p],me[p]||0)))*1.15||1, tk=niceTicks(top), ymax=tk.out[tk.out.length-1]<top?tk.out[tk.out.length-1]+tk.st:tk.out[tk.out.length-1];
+  const Y=y=>MT+PH-y/ymax*PH, gw=PW/4, bw=Math.min(18,gw*0.32);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${v.lab}: esperado frente a medido por pieza">`;
+  tk.out.concat(ymax!==tk.out[tk.out.length-1]?[ymax]:[]).forEach(y=>{s+=`<line x1="${ML}" x2="${W-MR}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--line)"/><text x="${ML-5}" y="${Y(y)+3.5}" font-size="9.5" text-anchor="end" fill="var(--muted)" font-family="${MONO}">${fmt(y,tk.st<1?(tk.st<0.1?2:1):0)}</text>`});
+  PIECES.forEach((p,i)=>{const cx=ML+gw*(i+0.5), col=`var(${CID[p].cvar})`, x1=has?cx-bw-1.5:cx-bw/2, x2=cx+1.5;
+    s+=`<rect x="${x1}" y="${Y(ex[p])}" width="${bw}" height="${Y(0)-Y(ex[p])}" fill="${col}" fill-opacity=".14" stroke="${col}" stroke-width="1.3" stroke-dasharray="3 2"/>`;
+    if(me[p]!==null){s+=`<rect x="${x2}" y="${Y(me[p])}" width="${bw}" height="${Y(0)-Y(me[p])}" fill="${col}"/><text x="${x2+bw/2}" y="${Y(me[p])-4}" font-size="9.5" text-anchor="middle" fill="var(--ink)" font-family="${MONO}">${fmt(me[p],v.dec)}</text>`}
+    else if(!has){s+=`<text x="${x1+bw/2}" y="${Y(ex[p])-4}" font-size="9.5" text-anchor="middle" fill="var(--muted)" font-family="${MONO}">${fmt(ex[p],0)}</text>`}
+    if(flagged.has(p))s+=`<circle cx="${cx+bw+6}" cy="${MT-6}" r="6" fill="var(--accent)"/><text x="${cx+bw+6}" y="${MT-2.5}" font-size="9" font-weight="700" text-anchor="middle" fill="var(--paper)">!</text>`;
+    s+=`<text x="${cx}" y="${H-8}" font-size="10.5" text-anchor="middle" fill="var(--ink)">${SHORT[p]}</text>`});
+  s+=`<line x1="${ML}" x2="${W-MR}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--muted)"/></svg>`;
+  return{svg:s,unit};
+}
+function orderLine(a,v,useExp,list0,r0){const r=r0||(useExp?a.expRank:a.mRank);const list=(list0||a.av).slice().sort((x,y)=>r[x]-r[y]);
+  return list.map((p,i)=>{const bad=!useExp&&a.mRank[p]!==a.expRank[p];return (i?(r[p]===r[list[i-1]]?' = ':' › '):'')+`<span class="${bad?'x':''}">${SHORT[p]}</span>`}).join('')}
+function renderBars(F){
+  const fl={};F.forEach(g=>g.items.forEach(o=>{(fl[o.v.k]=fl[o.v.k]||new Set()).add(o.p)}));
+  document.getElementById('bars').innerHTML=DV.map(v=>{const a=analyze(v);
+    if(v.rank){const has=a.av.length>1;
+      const eo=orderLine(a,v,true,PIECES,rankOf(PIECES,p=>-a.exp[p]));
+      return `<div class="bc"><h3>${v.lab}</h3><p class="sub small" style="margin-top:0">Observación visual: orden de 1 (más) a 4 (menos).</p>
+      <div class="ord" style="margin-top:12px"><b>Esperado</b><span>${eo}</span>${has?`<b>Observado</b><span>${orderLine(a,v,false)}</span>`:''}</div>
+      ${has?'':'<p class="empty" style="margin-top:12px">Anota el orden de subida observado a mitad del horneado.</p>'}</div>`}
+    const bc=barChart(v,a,fl[v.k]||new Set());
+    return `<div class="bc"><h3>${v.lab}</h3><p class="sub small" style="margin-top:0">${bc.unit}${v.low?' · menos densidad = más aire':''}</p>${bc.svg}
+      ${a.av.length>1?`<div class="ord"><b>Esperado</b><span>${orderLine(a,v,true)}</span><b>Medido</b><span>${orderLine(a,v,false)}</span></div><p class="sub small" style="margin-top:2px">Orden ${v.ord}.</p>`:''}</div>`}).join('');
+}
+/* diferencias que razonar */
+function findFlags(){
+  const out=[];
+  DV.forEach(v=>{const a=analyze(v);if(a.av.length<2)return;
+    a.av.forEach(p=>{
+      if(v.rank){const d=a.mRank[p]-a.expRank[p];if(d!==0)out.push({p,v,less:d>0,txt:`${v.lab}: puesto ${a.mRank[p]} de ${a.av.length}; se esperaba el ${a.expRank[p]}.`});return}
+      const m=meas(p,v.k).v, e=a.es[p], dev=(m-e)/e, rd=a.mRank[p]!==a.expRank[p];
+      if(v.ordinal){if(rd){const less=a.mRank[p]>a.expRank[p];out.push({p,v,less,txt:`${v.lab}: puesto ${a.mRank[p]} de ${a.av.length}; se esperaba el ${a.expRank[p]}.`})}return}
+      if((rd&&Math.abs(dev)>=0.05)||Math.abs(dev)>=0.15){
+        const less=v.low?m>e:m<e;
+        out.push({p,v,less,txt:`${v.lab}: puesto ${a.mRank[p]} de ${a.av.length} (se esperaba el ${a.expRank[p]}), un ${fmt(Math.abs(dev*100),0)} % ${dev>0?'por encima':'por debajo'} de lo esperado.`});
+      }});
+  });
+  const G={},order=['horno','batido','agua','ternura'];
+  out.forEach(o=>{const key=o.v.grp+'_'+(o.less?'menos':'mas'), id=o.p+'|'+key;(G[id]=G[id]||{p:o.p,key,grp:o.v.grp,items:[]}).items.push(o)});
+  return Object.values(G).sort((x,y)=>order.indexOf(x.grp)-order.indexOf(y.grp)||PIECES.indexOf(x.p)-PIECES.indexOf(y.p));
+}
+function renderReason(F){
+  const el2=document.getElementById('rzList');
+  const nData=DV.filter(v=>analyze(v).av.length>1).length;
+  if(!nData){el2.innerHTML='<p class="empty">Cuando introduzcas datos de al menos dos piezas, aquí aparecerán las piezas que se separan de lo esperado, con pistas para razonar sus causas desde la formulación, la técnica y los defectos.</p>';return}
+  if(!F.length){el2.innerHTML='<p class="empty">Tus datos siguen el orden esperado en todas las variables medidas. Revisa aun así la magnitud de las diferencias en las gráficas.</p>';return}
+  const R=CONTENT.reason;
+  el2.innerHTML=F.map(g=>{const gen=R.generic[g.key]||{}, sp=(R[g.p]||{})[g.key]||{};const t=k=>sp[k]||gen[k]||'';
+    return `<article class="rz" style="--c:var(${CID[g.p].cvar})"><h3><span class="sw"></span>${g.p==='GEN'?'Genovesa':CID[g.p].name} · ${CONTENT.heads[g.key]}</h3>
+    <ul class="obs">${g.items.map(o=>`<li>${o.txt}</li>`).join('')}</ul>
+    <div class="rz3"><div><span class="lb">Formulación</span><p>${t('f')}</p></div><div><span class="lb">Técnica</span><p>${t('t')}</p></div><div><span class="lb">Defecto</span><p>${t('d')}</p></div></div>
+    <p class="med">${CONTENT.med[g.grp]}</p></article>`}).join('');
+}
+document.getElementById('dLegend').innerHTML=`<span><svg viewBox="0 0 16 12" aria-hidden="true" style="width:16px;height:12px"><rect x="2" y="1" width="12" height="10" fill="var(--ink)" fill-opacity=".14" stroke="var(--ink)" stroke-dasharray="3 2"/></svg>Esperado por la simulación, llevado a la escala de tus datos</span><span><svg viewBox="0 0 16 12" aria-hidden="true" style="width:16px;height:12px"><rect x="2" y="1" width="12" height="10" fill="var(--ink)"/></svg>Medido en PR-3</span><span><svg viewBox="0 0 16 12" aria-hidden="true" style="width:14px;height:14px"><circle cx="8" cy="6" r="5.5" fill="var(--accent)"/></svg>Diferencia que razonar</span>`;
+let lastF=[];
+function renderData(){
+  PIECES.forEach(p=>{
+    FIELDS.forEach(f=>{const inp=document.getElementById(`d-${p}-${f[0]}`),v=num(inp.value);inp.classList.toggle('bad',inp.value.trim()!==''&&!okv(f[0],v))});
+    const aa=meas(p,'aa'),pc=meas(p,'pc'),bits=[];
+    if(aa)bits.push('AA '+fmt(aa.v,1)+' %'+(aa.n>1?` (${fmt(aa.min,0)}–${fmt(aa.max,0)})`:''));
+    if(pc)bits.push('pérdida '+fmt(pc.v,1)+' %');
+    document.getElementById(`d-${p}-calc`).textContent=bits.length?bits.join(' · '):'—';
+  });
+  document.getElementById('dBanner').hidden=!isExample;
+  const F=findFlags();lastF=F;
+  renderHyp();renderBars(F);renderReason(F);
+}
+renderData();
+document.getElementById('dCopy').addEventListener('click',()=>{
+  const L=['PR-3 · Contraste de los datos medidos con la simulación'+(isExample?' (DATOS DE EJEMPLO)':'')];
+  DV.forEach(v=>{const parts=PIECES.map(p=>{const x=meas(p,v.k);return x?`${NAMES[p]} ${fmt(x.v,v.dec)}`:null}).filter(Boolean);if(parts.length)L.push(`${v.lab}${v.unit?' ('+v.unit+')':''}: ${parts.join(' · ')}`)});
+  HCFG.forEach(h=>{const T=CONTENT.hyp[h.id];const parts=[];h.stages.forEach(s=>{const rs=s.vars.map(k=>vline(h.A,h.B,k,(h.modeV&&h.modeV[k])||h.mode));const vd=stageVerdict(rs.map(r=>r.chip),h.mode);if(vd)parts.push(`${s.sh}, ${vd}`)});if(parts.length)L.push(`${T.title}: ${parts.join('; ')}.`)});
+  lastF.forEach(g=>L.push(`${NAMES[g.p]}: ${CONTENT.heads[g.key].toLowerCase()} (${g.items.map(o=>o.v.lab.toLowerCase()).join(', ')}).`));
+  L.push('Lectura con una pieza por tratamiento: diferencias menores del 5 % no concluyentes (criterio orientativo).');
+  const txt=L.join('\n'), msg=document.getElementById('dMsg'), fb=document.getElementById('dFallback');
+  const showFb=()=>{fb.textContent=txt;fb.hidden=false;msg.textContent='Selecciona y copia el texto de abajo.'};
+  try{navigator.clipboard.writeText(txt).then(()=>{msg.textContent='Resumen copiado.';fb.hidden=true},showFb)}catch(_){showFb()}
+});
+
+/* ---------- bucle ---------- */
+let lastW=0;
+function frame(now){
+  if(playing){
+    if(last!==null){const prev=t;t+=Math.min(0.1,(now-last)/1000)*speed;
+      if(autoPause){for(const p of PH){if(prev<p.t1&&t>=p.t1&&p.t1<T_END){t=p.t1;playing=false;syncPlay();break}}}}
+    last=now;if(t>=T_END){t=T_END;playing=false;syncPlay()}dirty=true}
+  else last=null;
+  const steam=t>=OVEN0&&t<OVEN1+3.6;
+  if(dirty||steam||(t<14&&playing)){
+    COND.forEach(c=>{const U=UI[c.id];const {ctx,W,H}=fit(U.cv);drawScene(ctx,W,H,c.id,t,false);drawLupa(c);
+      const s=stateText(c.id),tp=tempText(c.id);if(U._st!==s){U.st.textContent=s;U._st=s}if(U._tp!==tp){U.tp.textContent=tp;U._tp=tp}});
+    if(dirty){const ph=phaseOf(t);
+      segEls.forEach((s,i)=>{const p=PH[i], k=clamp((t-p.t0)/(p.t1-p.t0),0,1);s.querySelector('i').style.width=(k*100).toFixed(1)+'%';s.classList.toggle('on',(i===ph&&t<T_END)||(t>=T_END&&i===PH.length-1))});
+      tl.setAttribute('aria-valuenow',t.toFixed(1));tl.setAttribute('aria-valuetext',PH[ph].n+', '+Math.round(t)+' s');
+      renderNarr();updateChart();const phDone=t>=T_END?6:phaseOf(t);if(phDone!==tblPh)renderTable();}
+    dirty=false;
+  }
+  const w=document.documentElement.clientWidth;if(w!==lastW){lastW=w;dirtyX=true}
+  if(dirtyX){drawThumbs();dirtyX=false}
+  requestAnimationFrame(frame);
+}
+syncPlay();
+window.addEventListener('resize',()=>{dirty=true;dirtyX=true});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{dirty=true;dirtyX=true});
+
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
