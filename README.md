@@ -1,4 +1,4 @@
-# Simulaci-n_PR-3_Pasteleria_UBU
+# Simulacion_PR-3_Pasteleria_UBU
 Simulador interactivo de batidos de espuma para la práctica PR-3 de Panificación y Pastelería (Grado en Ciencias Gastronómicas, UBU). Compara cuatro batidos, desde el montado hasta el corte de la miga, y contrasta lo esperado con los datos medidos en la práctica.
 Simulador de batidos de espuma (PR-3)
 
